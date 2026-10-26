@@ -12,6 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -27,6 +29,22 @@
       <div class="search"><span id="searchIc"></span><input id="search" type="search" data-i18n-ph="ابحث برقم الطلب أو اسم الشركة أو الوصف" placeholder="ابحث برقم الطلب أو اسم الشركة أو الوصف"></div>
       <div class="tabs" id="filters"></div>
       <div class="req-list" id="list"></div>
+    </section>
+
+    <!-- الخريطة الشاملة -->
+    <section id="tab-map" hidden>
+      <div class="map-head">
+        <div class="tabs" id="mapFilters"></div>
+        <select class="input act-period" id="mapPeriod">
+          <option value="0" data-i18n="كل الفترات">كل الفترات</option>
+          <option value="7" data-i18n="آخر 7 أيام">آخر 7 أيام</option>
+          <option value="30" data-i18n="آخر 30 يوم">آخر 30 يوم</option>
+          <option value="90" data-i18n="آخر 3 أشهر">آخر 3 أشهر</option>
+        </select>
+      </div>
+      <div class="map-count" id="mapCount"></div>
+      <div class="big-map" id="bigMap"></div>
+      <div class="map-legend" id="mapLegend"></div>
     </section>
 
     <!-- الحسابات -->
@@ -77,6 +95,8 @@
     </section>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
   <script type="module" src="js/gis.js"></script>
 </body>
 </html>

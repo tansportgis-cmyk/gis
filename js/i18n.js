@@ -170,6 +170,16 @@ const EN = {
   "اسم المختص": "Officer name",
   "التوقيع": "Signature",
   "الختم": "Stamp",
+
+  /* ---------- الخريطة الشاملة ---------- */
+  "الخريطة": "Map",
+  "الطلبات المفتوحة": "Open requests",
+  "{n} طلب على الخريطة": "{n} request(s) on the map",
+  "{n} بدون موقع": "{n} without a location",
+  "فتح الطلب": "Open request",
+  "الشوارع": "Streets",
+  "قمر صناعي": "Satellite",
+  "تعذر تحميل الخريطة، تحقق من الإنترنت": "Couldn't load the map — check your internet connection",
   "تم رفض الطلب": "Request rejected",
   "أعاد GIS فتح الطلب": "GIS reopened the request",
   "رفع GIS ملفات": "GIS uploaded files",

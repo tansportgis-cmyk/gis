@@ -323,7 +323,7 @@ p { margin: 0; }
 .map.tall { height: 300px; }
 .map-tools { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
 .map-tools code { direction: ltr; display: inline-block; font-size: 12.5px; }
-.map-pin span { display: block; width: 28px; height: 28px; background: var(--primary); border: 3px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 3px 8px rgba(0,0,0,.35); }
+.map-pin span { display: block; width: 28px; height: 28px; background: var(--pin, var(--primary)); border: 3px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 3px 8px rgba(0,0,0,.35); }
 .map-pin span::after { content: ""; position: absolute; width: 9px; height: 9px; background: #fff; border-radius: 50%; top: 6.5px; left: 6.5px; }
 .leaflet-container { font-family: var(--font); }
 
@@ -565,3 +565,31 @@ p { margin: 0; }
   .pv-sign { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 36px; page-break-inside: avoid; }
   .pv-sign div { border-top: 1px solid #000; padding-top: 6px; text-align: center; font-size: 10pt; }
 }
+
+/* ---------- الخريطة الشاملة ---------- */
+.navtabs { overflow-x: auto; scrollbar-width: none; }
+.navtabs::-webkit-scrollbar { display: none; }
+.navtab { flex: 1 0 auto; }
+.map-head { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.map-head .tabs { flex: 1 1 280px; margin-bottom: 8px; }
+.map-head .act-period { min-height: 38px; }
+.map-count { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 8px; flex-wrap: wrap; }
+.map-count .ic { width: 16px; height: 16px; color: var(--primary); }
+.map-count .muted { font-weight: 500; }
+.big-map { height: calc(100vh - 290px); min-height: 380px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); direction: ltr; z-index: 0; background: #e8eef5; box-shadow: var(--shadow); }
+@media (min-width: 960px) { .big-map { min-height: 520px; } }
+.map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--text-2); }
+.lg-item { display: inline-flex; align-items: center; gap: 6px; }
+.lg-item i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.lg-item b { color: var(--muted); font-weight: 600; }
+.lg-zero { opacity: .5; }
+.map-cluster span { width: 38px; height: 38px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; font-size: 14px; display: grid; place-items: center; border: 3px solid #fff; box-shadow: 0 0 0 5px rgba(29,111,224,.25), 0 3px 8px rgba(0,0,0,.25); }
+.map-pop { font-family: var(--font); display: grid; gap: 4px; text-align: start; }
+.map-pop .mp-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.map-pop .mp-top strong { font-size: 14.5px; }
+.map-pop .mp-line { font-size: 13px; color: var(--text-2); }
+.map-pop .mp-desc { font-size: 12.5px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.map-pop .mp-links { display: flex; gap: 12px; margin-top: 6px; font-size: 13px; font-weight: 600; }
+.leaflet-popup-content { margin: 12px 14px; }
+.leaflet-control-layers { font-family: var(--font); }
+.leaflet-control-layers-toggle { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23155bc2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z'/%3E%3Cpath d='m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65'/%3E%3Cpath d='m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65'/%3E%3C/svg%3E") !important; background-size: 22px 22px !important; }

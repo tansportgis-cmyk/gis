@@ -3,7 +3,7 @@ import {
   db, F, $, $$, esc, icon, toast, errMsg, requireAuth, renderShell, hideBoot,
   requestCard, emptyState, byDateDesc, STATUS, ROLES, ROLE_KEYS, fmtDate, modal, askNote, notify,
   DEFAULT_TYPES, t, markCurrentPageRead, avatarPicker, avatarChanges,
-  toDate, fmtDateTime, HISTORY_LABELS, ACTIVITY_LABELS, logActivity
+  toDate, fmtDateTime, HISTORY_LABELS, ACTIVITY_LABELS, logActivity, timeAgo, chip, APP, gmapsLink
 } from "./core.js";
 
 const { profile } = await requireAuth(["gis"]);
@@ -11,7 +11,7 @@ renderShell(profile, { title: t("لوحة GIS"), subtitle: profile.orgName });
 $("#searchIc").outerHTML = icon("search");
 
 /* ---------- التنقل ---------- */
-const TABS = { requests: [t("الطلبات"), "inbox"], accounts: [t("الحسابات"), "users"], activity: [t("السجل"), "clock"], settings: [t("الإعدادات"), "settings"] };
+const TABS = { requests: [t("الطلبات"), "inbox"], map: [t("الخريطة"), "pin"], accounts: [t("الحسابات"), "users"], activity: [t("السجل"), "clock"], settings: [t("الإعدادات"), "settings"] };
 let tab = (location.hash.slice(1) in TABS) ? location.hash.slice(1) : "requests";
 let requests = [], users = [], activity = [];
 
@@ -26,6 +26,7 @@ function renderNav() {
 function showTab() {
   Object.keys(TABS).forEach(k => ($("#tab-" + k).hidden = k !== tab));
   renderNav();
+  if (tab === "map") showMap();
 }
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h in TABS) { tab = h; showTab(); } });
 
@@ -65,6 +66,7 @@ F.onSnapshot(F.query(F.collection(db, "requests"), F.orderBy("createdAt", "desc"
   renderRequests();
   renderActivity();
   archHint();
+  renderMap();
   hideBoot();
 }, e => { toast(errMsg(e), "error"); hideBoot(); });
 
@@ -355,5 +357,88 @@ $("#archBtn").addEventListener("click", () => {
     }
   });
 });
+
+/* ---------- الخريطة الشاملة ---------- */
+const PIN_COLORS = { new: "#1d6fe0", needs_info: "#c26a00", gis_work: "#3a55c9", maintenance: "#7046d9", gis_review: "#0b8585", approved: "#1e9a52", rejected: "#d8393a" };
+const MFILTERS = {
+  open:     { label: t("الطلبات المفتوحة"), match: r => !r.archived && !["approved", "rejected"].includes(r.status) },
+  action:   { label: t("بحاجة لإجرائك"),   match: r => !r.archived && ["new", "gis_review"].includes(r.status) },
+  maint:    { label: t("عند الصيانة"),     match: r => !r.archived && r.status === "maintenance" },
+  all:      { label: t("الكل"),            match: r => !r.archived },
+  archived: { label: t("الأرشيف"),         match: r => !!r.archived }
+};
+let mfilter = "open", mperiod = 0, bigMap = null, layer = null, lastFitKey = "";
+const hasLoc = r => r.location && isFinite(r.location.lat) && isFinite(r.location.lng);
+
+function mapRequests() {
+  const from = mperiod ? Date.now() - mperiod * 86400000 : 0;
+  return requests.filter(r => MFILTERS[mfilter].match(r) && (toDate(r.createdAt)?.getTime() || Date.now()) >= from);
+}
+function showMap() {
+  if (!window.L) { $("#bigMap").innerHTML = emptyState(t("تعذر تحميل الخريطة، تحقق من الإنترنت")); return; }
+  if (!bigMap) {
+    const L = window.L;
+    bigMap = L.map("bigMap", { zoomControl: true }).setView(APP.mapCenter, APP.mapZoom);
+    const streets = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' });
+    const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Tiles &copy; Esri" });
+    streets.addTo(bigMap);
+    L.control.layers({ [t("الشوارع")]: streets, [t("قمر صناعي")]: satellite }, null, { position: "topleft" }).addTo(bigMap);
+    layer = L.markerClusterGroup
+      ? L.markerClusterGroup({
+          showCoverageOnHover: false, maxClusterRadius: 45,
+          iconCreateFunction: c => L.divIcon({ className: "map-cluster", html: `<span>${c.getChildCount()}</span>`, iconSize: [38, 38] })
+        })
+      : L.layerGroup();
+    layer.addTo(bigMap);
+    renderMap();
+  }
+  setTimeout(() => { bigMap.invalidateSize(); fitMap(true); }, 60);
+}
+function fitMap(force) {
+  if (!bigMap || !layer) return;
+  const pts = mapRequests().filter(hasLoc).map(r => [r.location.lat, r.location.lng]);
+  const key = mfilter + "|" + mperiod;
+  if (!force && key === lastFitKey) return;
+  lastFitKey = key;
+  if (pts.length === 1) bigMap.setView(pts[0], 15);
+  else if (pts.length) bigMap.fitBounds(pts, { padding: [40, 40], maxZoom: 15 });
+}
+function popupHTML(r) {
+  return `<div class="map-pop" dir="${document.documentElement.dir}">
+    <div class="mp-top"><strong>${esc(t("طلب #{n}", { n: r.number }))}</strong>${chip(r.status)}</div>
+    <div class="mp-line">${esc(r.companyName || "")}</div>
+    <div class="mp-line muted">${esc(t(r.type || ""))} · ${esc(timeAgo(r.createdAt))}</div>
+    ${r.description ? `<div class="mp-desc">${esc(r.description)}</div>` : ""}
+    <div class="mp-links"><a href="request.html?id=${encodeURIComponent(r.id)}">${t("فتح الطلب")}</a><a href="${gmapsLink(r.location)}" target="_blank" rel="noopener">Google Maps</a></div>
+  </div>`;
+}
+function renderMap() {
+  const list = mapRequests();
+  const located = list.filter(hasLoc);
+  // التصنيفات والعدد ومفتاح الألوان
+  if ($("#mapFilters")) {
+    $("#mapFilters").innerHTML = Object.entries(MFILTERS).map(([k, f]) =>
+      `<button class="tab ${k === mfilter ? "active" : ""}" data-mf="${k}">${f.label}</button>`).join("");
+    $$("[data-mf]").forEach(b => b.onclick = () => { mfilter = b.dataset.mf; renderMap(); fitMap(); });
+    const missing = list.length - located.length;
+    $("#mapCount").innerHTML = `${icon("pin")} ${esc(t("{n} طلب على الخريطة", { n: located.length }))}${missing ? ` <span class="muted">· ${esc(t("{n} بدون موقع", { n: missing }))}</span>` : ""}`;
+    const counts = {};
+    located.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+    $("#mapLegend").innerHTML = Object.keys(PIN_COLORS).map(k =>
+      `<span class="lg-item ${counts[k] ? "" : "lg-zero"}"><i style="background:${PIN_COLORS[k]}"></i>${esc(STATUS[k].label)} <b>${counts[k] || 0}</b></span>`).join("");
+  }
+  if (!bigMap || !layer) return;
+  const L = window.L;
+  layer.clearLayers();
+  located.forEach(r => {
+    const m = L.marker([r.location.lat, r.location.lng], {
+      icon: L.divIcon({ className: "map-pin", html: `<span style="--pin:${PIN_COLORS[r.status] || "#1d6fe0"}"></span>`, iconSize: [28, 38], iconAnchor: [14, 38], popupAnchor: [0, -34] }),
+      title: t("طلب #{n}", { n: r.number })
+    });
+    m.bindPopup(popupHTML(r), { maxWidth: 260, minWidth: 220 });
+    layer.addLayer(m);
+  });
+}
+$("#mapPeriod").addEventListener("change", e => { mperiod = +e.target.value; renderMap(); fitMap(); });
 
 showTab();
