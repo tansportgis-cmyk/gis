@@ -1,0 +1,425 @@
+// ==========================================================
+//  i18n.js — الترجمة (عربي / English)
+//  النص العربي هو المفتاح، والإنجليزي ترجمته.
+//  لإضافة نص جديد: اكتبه بالعربي داخل t("...") وأضف ترجمته هنا.
+// ==========================================================
+const KEY = "lang";
+function readLang() { try { return localStorage.getItem(KEY) === "en" ? "en" : "ar"; } catch { return "ar"; } }
+
+export const lang = readLang();
+export const isEn = lang === "en";
+document.documentElement.lang = lang;
+document.documentElement.dir = isEn ? "ltr" : "rtl";
+
+export function setLang(l) {
+  try { localStorage.setItem(KEY, l); } catch {}
+  location.reload();
+}
+
+const EN = {
+  /* ---------- عام ---------- */
+  "منصة طلبات GIS": "GIS Requests Platform",
+  "تأكيد": "Confirm",
+  "إلغاء": "Cancel",
+  "إغلاق": "Close",
+  "رجوع": "Back",
+  "العودة": "Go back",
+  "حفظ": "Save",
+  "حذف": "Delete",
+  "تعديل": "Edit",
+  "إضافة": "Add",
+  "إرسال": "Send",
+  "رفع": "Upload",
+  "تصوير": "Take photo",
+  "تنزيل": "Download",
+  "إزالة": "Remove",
+  "مسح": "Clear",
+  "الكل": "All",
+  "أنت": "You",
+  "السبب": "Reason",
+  "الآن": "Just now",
+  "منذ {n} دقيقة": "{n} min ago",
+  "منذ {n} ساعة": "{n} h ago",
+  "منذ {n} يوم": "{n} d ago",
+  "الحساب": "Account",
+  "تسجيل الخروج": "Sign out",
+  "الإشعارات": "Notifications",
+  "تحديد الكل كمقروء": "Mark all as read",
+  "تفعيل تنبيهات الجهاز": "Enable device alerts",
+  "لا توجد إشعارات": "No notifications",
+  "تم تفعيل التنبيهات": "Alerts enabled",
+  "لم يتم السماح بالتنبيهات": "Alerts were not allowed",
+  "تعذر تحميل الحساب": "Couldn't load your account",
+  "الرجاء كتابة الملاحظة": "Please write a note",
+  "حدث خطأ غير متوقع": "Something went wrong",
+
+  /* ---------- الأدوار ---------- */
+  "شركة": "Company",
+  "قسم الصيانة": "Maintenance Department",
+  "GIS (مدير النظام)": "GIS (Administrator)",
+  "قسم GIS": "GIS Department",
+
+  /* ---------- الحالات ---------- */
+  "جديد": "New",
+  "مطلوب استكمال": "Needs info",
+  "قيد العمل في GIS": "In progress at GIS",
+  "عند الصيانة": "With maintenance",
+  "مراجعة GIS": "GIS review",
+  "مكتمل": "Completed",
+  "مرفوض": "Rejected",
+  "قيد المعالجة": "In progress",
+  "مكتملة": "Completed",
+  "مرفوضة": "Rejected",
+  "موقوف": "Suspended",
+  "مفعّل": "Active",
+
+  /* ---------- سجل الطلب ---------- */
+  "تم تقديم الطلب": "Request submitted",
+  "أعادت الشركة إرسال الطلب بعد الاستكمال": "Company resubmitted the request with the missing info",
+  "عدّلت الشركة بيانات الطلب": "Company updated the request",
+  "GIS طلب استكمال من الشركة": "GIS asked the company for more info",
+  "GIS قبل الطلب وبدأ العمل": "GIS accepted the request and started work",
+  "تم إرسال الطلب لقسم الصيانة": "Request sent to Maintenance",
+  "أنهت الصيانة العمل وأرجعته لـ GIS": "Maintenance finished and returned it to GIS",
+  "GIS أرجع الطلب للصيانة للتعديل": "GIS returned the request to Maintenance for changes",
+  "تم اعتماد الطلب وإرساله للشركة": "Request approved and sent to the company",
+  "تم رفض الطلب": "Request rejected",
+  "أعاد GIS فتح الطلب": "GIS reopened the request",
+  "رفع GIS ملفات": "GIS uploaded files",
+  "رفعت الصيانة ملفات": "Maintenance uploaded files",
+  "سجل الطلب": "Request history",
+  "لا يوجد سجل": "No history yet",
+
+  /* ---------- أنواع الطلبات الافتراضية ---------- */
+  "أعمال GIS": "GIS work",
+  "أعمال ميدانية": "Field work",
+  "تحديث بيانات": "Data update",
+  "رفع مخطط": "Plan survey",
+  "أخرى": "Other",
+
+  /* ---------- الأخطاء ---------- */
+  "البريد أو كلمة المرور غير صحيحة": "Incorrect email or password",
+  "البريد الإلكتروني غير صحيح": "Invalid email address",
+  "هذا البريد مسجل مسبقاً": "This email is already registered",
+  "كلمة المرور ضعيفة (6 أحرف على الأقل)": "Weak password (at least 6 characters)",
+  "محاولات كثيرة، حاول بعد قليل": "Too many attempts, try again shortly",
+  "تحقق من اتصال الإنترنت": "Check your internet connection",
+  "ليس لديك صلاحية لهذا الإجراء": "You don't have permission for this action",
+  "ليس لديك صلاحية لهذا الملف": "You don't have permission for this file",
+  "الملف غير موجود": "File not found",
+  "تم إلغاء الرفع": "Upload cancelled",
+  "تم تجاوز مساحة التخزين": "Storage quota exceeded",
+  "تعذر الاتصال بالخادم، تحقق من الإنترنت": "Couldn't reach the server, check your internet",
+  "العنصر غير موجود": "Item not found",
+
+  /* ---------- الملفات ---------- */
+  "جارٍ الرفع…": "Uploading…",
+  "جارٍ رفع {n} ملف…": "Uploading {n} file(s)…",
+  "الملف \"{name}\" أكبر من {mb} ميجابايت": "\"{name}\" is larger than {mb} MB",
+  "لا توجد ملفات": "No files",
+  "إرفاق ملفات": "Attach files",
+  "اختيار ملفات": "Choose files",
+  "إضافة ملفات": "Add files",
+  "أو اسحب الملفات هنا · الحد الأقصى {mb} ميجابايت للملف": "or drag files here · max {mb} MB per file",
+  "حذف الملف": "Delete file",
+  "هل تريد حذف الملف <b>{name}</b>؟": "Delete the file <b>{name}</b>?",
+  "تم حذف الملف": "File deleted",
+  "تم رفع {n} ملف": "{n} file(s) uploaded",
+
+  /* ---------- الخريطة ---------- */
+  "المتصفح لا يدعم تحديد الموقع": "Your browser doesn't support location",
+  "تعذر تحديد موقعك، اسمح بالوصول للموقع": "Couldn't get your location — please allow location access",
+  "الموقع على الخريطة": "Location on map",
+  "موقعي": "My location",
+  "اضغط على الخريطة لتحديد الموقع (اختياري)": "Tap the map to set the location (optional)",
+  "الموقع": "Location",
+  "فتح في خرائط Google": "Open in Google Maps",
+  "لم يتم تحديد موقع": "No location set",
+
+  /* ---------- صفحة الدخول ---------- */
+  "مرحباً بك": "Welcome",
+  "في منصة طلبات الأعمال الميدانية و GIS": "to the Field Work & GIS Requests Platform",
+  "تسجيل الدخول": "Sign in",
+  "ادخل ببريدك وكلمة المرور": "Sign in with your email and password",
+  "البريد الإلكتروني": "Email",
+  "كلمة المرور": "Password",
+  "نسيت كلمة المرور؟": "Forgot password?",
+  "دخول": "Sign in",
+  "ليس لديك حساب؟": "Don't have an account?",
+  "تسجيل حساب جديد": "Create an account",
+  "سيتم مراجعة الحساب وتفعيله من قسم GIS": "Your account will be reviewed and activated by the GIS Department",
+  "نوع الحساب": "Account type",
+  "اسم الشركة": "Company name",
+  "اسم القسم / الفريق": "Department / team name",
+  "اسم المسؤول": "Contact person",
+  "رقم الهاتف": "Phone number",
+  "تأكيد كلمة المرور": "Confirm password",
+  "إرسال طلب التسجيل": "Submit registration",
+  "لديك حساب؟": "Already have an account?",
+  "أدخل البريد وكلمة المرور": "Enter your email and password",
+  "استعادة كلمة المرور": "Reset password",
+  "إرسال الرابط": "Send link",
+  "سنرسل رابط تعيين كلمة مرور جديدة إلى بريدك.": "We'll email you a link to set a new password.",
+  "أدخل البريد": "Enter your email",
+  "تم إرسال الرابط إلى بريدك": "Link sent to your email",
+  "أكمل الحقول المطلوبة": "Please fill in the required fields",
+  "كلمة المرور 6 أحرف على الأقل": "Password must be at least 6 characters",
+  "كلمتا المرور غير متطابقتين": "Passwords don't match",
+  "تم إرسال طلب التسجيل": "Registration submitted",
+  "الحساب غير موجود": "Account not found",
+  "لم يتم العثور على بيانات حسابك، ربما تم حذفه. تواصل مع قسم GIS.": "We couldn't find your account details — it may have been deleted. Please contact the GIS Department.",
+  "حسابك قيد المراجعة": "Your account is under review",
+  "تم استلام طلب تسجيل \"{org}\" كـ {role}. سيتم تفعيل الحساب من قسم GIS، وستنتقل للتطبيق تلقائياً بعد الموافقة.": "We received the registration for \"{org}\" as {role}. The GIS Department will activate it, and you'll be taken into the app automatically once approved.",
+  "تم رفض طلب التسجيل": "Registration rejected",
+  "تواصل مع قسم GIS لمعرفة التفاصيل.": "Contact the GIS Department for details.",
+  "الحساب موقوف": "Account suspended",
+  "تم إيقاف هذا الحساب. تواصل مع قسم GIS.": "This account has been suspended. Please contact the GIS Department.",
+  "بيانات الحساب غير صحيحة": "Invalid account data",
+  "القيم المحفوظة لهذا الحساب في Firestore غير معروفة. صحّحها بحروف صغيرة وبدون مسافات أو علامات تنصيص.": "The values saved for this account in Firestore aren't recognised. Fix them using lowercase letters, with no spaces or quotation marks.",
+  "طلب تسجيل حساب جديد": "New account registration",
+  "{org} — {role}": "{org} — {role}",
+
+  /* ---------- الشركة ---------- */
+  "طلباتي": "My requests",
+  "طلباتي — منصة طلبات GIS": "My requests — GIS Requests Platform",
+  "مرحباً، {name}": "Hello, {name}",
+  "تابع حالة طلباتك المقدمة لقسم GIS": "Track the status of your requests to the GIS Department",
+  "طلب جديد": "New request",
+  "إرسال طلب جديد": "Submit a new request",
+  "سيصل الطلب لقسم GIS للمراجعة": "Your request will go to the GIS Department for review",
+  "نوع الطلب": "Request type",
+  "وصف الطلب": "Description",
+  "مثال: رفع بيانات شبكة مياه جديدة في مخطط الحي الشمالي": "e.g. Survey the new water network in the North District plan",
+  "إرفاق الملفات": "Attachments",
+  "إرسال الطلب": "Submit request",
+  "كل الطلبات": "All requests",
+  "لا توجد طلبات في هذا التصنيف": "No requests in this category",
+  "لا توجد طلبات بعد": "No requests yet",
+  "اضغط \"طلب جديد\" لإرسال أول طلب": "Tap \"New request\" to submit your first one",
+  "اختر نوع الطلب": "Choose a request type",
+  "اكتب وصف الطلب": "Please describe the request",
+  "لم ترفق أي ملف. هل تريد الإرسال بدون ملفات؟": "You haven't attached any files. Submit without files?",
+  "جارٍ رفع ملفات الطلب…": "Uploading request files…",
+  "تم إرسال الطلب #{n} بنجاح": "Request #{n} submitted",
+  "طلب جديد #{n}": "New request #{n}",
+  "{type} — {org}": "{type} — {org}",
+
+  /* ---------- لوحة GIS ---------- */
+  "لوحة GIS": "GIS Dashboard",
+  "لوحة GIS — منصة طلبات GIS": "GIS Dashboard — GIS Requests Platform",
+  "الطلبات": "Requests",
+  "الحسابات": "Accounts",
+  "الإعدادات": "Settings",
+  "بحاجة لإجرائك": "Needs your action",
+  "لا توجد طلبات بحاجة لإجرائك": "No requests need your action",
+  "لا توجد طلبات": "No requests",
+  "ابحث برقم الطلب أو اسم الشركة أو الوصف": "Search by request number, company or description",
+  "بانتظار الموافقة": "Pending approval",
+  "الشركات": "Companies",
+  "الصيانة": "Maintenance",
+  "مرفوض / موقوف": "Rejected / suspended",
+  "قبول": "Approve",
+  "رفض": "Reject",
+  "إيقاف": "Suspend",
+  "تفعيل": "Activate",
+  "تاريخ التسجيل": "Registered",
+  "سبب الرفض": "Rejection reason",
+  "لا توجد حسابات": "No accounts",
+  "الصلاحية": "Role",
+  "صلاحية GIS تعطي تحكماً كاملاً بالتطبيق، امنحها لموظفي القسم فقط.": "The GIS role has full control of the app — give it to department staff only.",
+  "قبول {name}": "Approve {name}",
+  "قبول وتفعيل": "Approve & activate",
+  "طلب التسجيل كـ {role}.": "Registered as {role}.",
+  "تم تفعيل حسابك": "Your account is active",
+  "مرحباً بك في المنصة كـ {role}": "Welcome to the platform as {role}",
+  "تم تفعيل الحساب": "Account activated",
+  "رفض {name}": "Reject {name}",
+  "سبب الرفض (سيظهر لصاحب الحساب)": "Reason (shown to the account owner)",
+  "تم رفض الحساب": "Account rejected",
+  "تعديل الحساب": "Edit account",
+  "لا يمكن تغيير البريد لأنه مرتبط بتسجيل الدخول.": "The email can't be changed because it's used to sign in.",
+  "سيحصل \"{name}\" على صلاحيات GIS كاملة. متأكد؟": "\"{name}\" will get full GIS permissions. Are you sure?",
+  "تم حفظ التعديلات": "Changes saved",
+  "حذف الحساب": "Delete account",
+  "حذف نهائي": "Delete permanently",
+  "سيتم حذف حساب <b>{name}</b> من التطبيق ولن يتمكن من الدخول.": "<b>{name}</b> will be removed from the app and won't be able to sign in.",
+  "طلبات هذه الشركة ({n}) ستبقى محفوظة في النظام.": "This company's requests ({n}) will be kept in the system.",
+  "لحذف بيانات الدخول نهائياً: Firebase Console ← Authentication ← Users.": "To delete the sign-in credentials too: Firebase Console → Authentication → Users.",
+  "تم حذف الحساب": "Account deleted",
+  "إيقاف الحساب": "Suspend account",
+  "لن يتمكن <b>{name}</b> من الدخول للتطبيق حتى تعيد تفعيله.": "<b>{name}</b> won't be able to sign in until you reactivate the account.",
+  "تم إيقاف الحساب": "Account suspended",
+  "أنواع الطلبات": "Request types",
+  "هذه الأنواع تظهر للشركات عند إرسال طلب جديد.": "Companies choose from these types when submitting a request.",
+  "نوع جديد، مثال: أعمال مساحة": "New type, e.g. Land survey",
+  "لا توجد أنواع": "No types",
+  "تم الحفظ": "Saved",
+
+  /* ---------- الصيانة ---------- */
+  "طلبات الصيانة": "Maintenance requests",
+  "قسم الصيانة — منصة طلبات GIS": "Maintenance — GIS Requests Platform",
+  "الطلبات المحوّلة من قسم GIS": "Requests assigned by the GIS Department",
+  "قيد التنفيذ": "In progress",
+  "بانتظار مراجعة GIS": "Awaiting GIS review",
+  "مرفوضة / أخرى": "Rejected / other",
+  "عند GIS للمراجعة": "With GIS for review",
+  "لا توجد طلبات بانتظار التنفيذ": "No requests waiting to be done",
+
+  /* ---------- تفاصيل الطلب ---------- */
+  "تفاصيل الطلب": "Request details",
+  "تفاصيل الطلب — منصة طلبات GIS": "Request details — GIS Requests Platform",
+  "طلب #{n}": "Request #{n}",
+  "تم إرسال الطلب بنجاح": "Request submitted",
+  "سيتم مراجعته من قسم GIS وستصلك الإشعارات عند أي تحديث.": "The GIS Department will review it, and you'll be notified of any update.",
+  "الطلب غير موجود": "Request not found",
+  "تعذر فتح الطلب": "Couldn't open the request",
+  "تقديم": "Submitted",
+  "عمل GIS": "GIS work",
+  "مطلوب منك استكمال الطلب": "Please complete your request",
+  "بانتظار استكمال الشركة": "Waiting for the company to complete it",
+  "تم اعتماد الطلب": "Request approved",
+  "الملفات النهائية متاحة في قسم الملفات أدناه.": "The final files are available in the files section below.",
+  "تعليمات GIS للصيانة": "GIS instructions for Maintenance",
+  "ملاحظات الصيانة": "Maintenance notes",
+  "الشركة": "Company",
+  "المسؤول": "Contact",
+  "ملفات الشركة": "Company files",
+  "ملفات GIS (الخرائط)": "GIS files (maps)",
+  "ملفات وصور الصيانة": "Maintenance files & photos",
+  "الملفات النهائية": "Final files",
+
+  /* إجراءات GIS */
+  "مراجعة الطلب": "Review request",
+  "راجع بيانات الطلب وملفات الشركة، ثم اختر الإجراء المناسب.": "Review the request details and company files, then choose an action.",
+  "قبول وبدء العمل": "Accept & start work",
+  "طلب استكمال": "Request info",
+  "بانتظار الشركة": "Waiting for the company",
+  "تم إرجاع الطلب للشركة لاستكمال النواقص. سيصلك إشعار عند إعادة الإرسال.": "The request was sent back to the company to complete. You'll be notified when they resubmit.",
+  "قبول كما هو": "Accept as is",
+  "العمل على الطلب": "Work on the request",
+  "نزّل ملفات الشركة واعمل على الخرائط، ثم ارفعها في قسم «ملفات GIS» وأرسل الطلب للصيانة.": "Download the company files and prepare the maps, then upload them under \"GIS files\" and send the request to Maintenance.",
+  "إرسال لقسم الصيانة": "Send to Maintenance",
+  "الطلب عند الصيانة": "With Maintenance",
+  "سيصلك إشعار عندما تنهي الصيانة العمل وترجع الطلب.": "You'll be notified when Maintenance finishes and returns the request.",
+  "مراجعة عمل الصيانة": "Review maintenance work",
+  "راجع صور وملفات الصيانة وملاحظاتهم، ثم اعتمد الطلب للشركة أو أرجعه.": "Review Maintenance's photos, files and notes, then approve the request for the company or send it back.",
+  "موافقة وإرسال للشركة": "Approve & send to company",
+  "إرجاع للصيانة": "Return to Maintenance",
+  "الطلب مغلق": "Request closed",
+  "تم اعتماد الطلب وإرساله للشركة.": "The request was approved and sent to the company.",
+  "تم رفض الطلب وإبلاغ الشركة.": "The request was rejected and the company was notified.",
+  "إعادة فتح الطلب": "Reopen request",
+  "حذف الطلب نهائياً": "Delete request permanently",
+  "قبول الطلب": "Accept request",
+  "سيتم تحويل الطلب #{n} إلى «قيد العمل في GIS» وإبلاغ الشركة.": "Request #{n} will move to \"In progress at GIS\" and the company will be notified.",
+  "تم قبول طلبك #{n}": "Your request #{n} was accepted",
+  "بدأ قسم GIS العمل على طلبك": "The GIS Department has started working on your request",
+  "تم قبول الطلب": "Request accepted",
+  "طلب استكمال من الشركة": "Ask the company for more info",
+  "ما الناقص؟ (ستظهر للشركة)": "What's missing? (shown to the company)",
+  "مثال: المخطط المرفق غير واضح، الرجاء رفع نسخة بصيغة DWG": "e.g. The attached plan isn't clear — please upload a DWG version",
+  "إرسال للشركة": "Send to company",
+  "مطلوب استكمال الطلب #{n}": "Request #{n} needs more info",
+  "تم إرجاع الطلب للشركة": "Request sent back to the company",
+  "رفض الطلب": "Reject request",
+  "سبب الرفض (سيظهر للشركة)": "Reason (shown to the company)",
+  "تم رفض الطلب #{n}": "Request #{n} was rejected",
+  "أغلق قسم GIS الطلب": "The GIS Department closed the request",
+  "ارفع ملفات GIS أولاً قبل الإرسال للصيانة": "Upload the GIS files before sending to Maintenance",
+  "تعليمات للصيانة (اختياري)": "Instructions for Maintenance (optional)",
+  "مثال: تنفيذ الرفع الميداني حسب الخريطة المرفقة": "e.g. Carry out the field survey according to the attached map",
+  "طلب جديد #{n} من GIS": "New request #{n} from GIS",
+  "تم الإرسال لقسم الصيانة": "Sent to Maintenance",
+  "ما المطلوب تعديله؟": "What needs to change?",
+  "GIS أرجع الطلب #{n} للتعديل": "GIS returned request #{n} for changes",
+  "تم إرجاع الطلب للصيانة": "Request returned to Maintenance",
+  "إعادة الفتح": "Reopen",
+  "سيعود الطلب إلى «قيد العمل في GIS».": "The request will go back to \"In progress at GIS\".",
+  "تمت إعادة فتح الطلب": "Request reopened",
+  "سيتم حذف الطلب #{n} وكل ملفاته. لا يمكن التراجع عن هذا الإجراء.": "Request #{n} and all its files will be deleted. This can't be undone.",
+
+  /* إجراءات الصيانة */
+  "تنفيذ العمل": "Do the work",
+  "نزّل خرائط GIS، نفّذ العمل، ثم ارفع الصور والملفات في قسم «ملفات وصور الصيانة» واكتب ملاحظاتك.": "Download the GIS maps, do the work, then upload photos and files under \"Maintenance files & photos\" and add your notes.",
+  "مثال: تم تنفيذ الرفع الميداني حسب المخطط": "e.g. Field survey completed according to the plan",
+  "إنهاء وإرسال لـ GIS": "Finish & send to GIS",
+  "حفظ الملاحظات فقط": "Save notes only",
+  "تم حفظ الملاحظات": "Notes saved",
+  "ارفع صوراً أو اكتب ملاحظات قبل الإنهاء": "Upload photos or write notes before finishing",
+  "إنهاء العمل": "Finish work",
+  "إرسال لـ GIS": "Send to GIS",
+  "سيتم إرسال الطلب #{n} إلى GIS للمراجعة مع {c} ملف.": "Request #{n} will be sent to GIS for review with {c} file(s).",
+  "أنهت الصيانة الطلب #{n}": "Maintenance finished request #{n}",
+  "بانتظار مراجعتك": "Waiting for your review",
+  "تم الإرسال لـ GIS": "Sent to GIS",
+  "أرسلت العمل لقسم GIS. سيصلك إشعار إذا تم إرجاعه للتعديل.": "You sent the work to GIS. You'll be notified if it's returned for changes.",
+  "تم اعتماد العمل": "Work approved",
+  "اعتمد قسم GIS هذا الطلب وأغلقه.": "The GIS Department approved and closed this request.",
+  "تم رفض هذا الطلب من قسم GIS.": "The GIS Department rejected this request.",
+
+  /* إجراءات الشركة */
+  "استكمال الطلب": "Complete your request",
+  "عدّل الوصف أو أرفق الملفات الناقصة ثم أعد إرسال الطلب.": "Update the description or attach the missing files, then resubmit.",
+  "تم استلام طلبك. يمكنك إضافة ملفات أو تعديل الوصف قبل أن يبدأ GIS العمل.": "We've received your request. You can add files or edit the description before GIS starts work.",
+  "إعادة إرسال الطلب": "Resubmit request",
+  "تعديل / إضافة ملفات": "Edit / add files",
+  "حفظ التعديلات": "Save changes",
+  "أعادت {org} إرسال الطلب #{n}": "{org} resubmitted request #{n}",
+  "تحديث على الطلب #{n}": "Update on request #{n}",
+  "تمت إضافة {c} ملف": "{c} file(s) added",
+  "تم تعديل الوصف": "Description updated",
+  "تم إعادة إرسال الطلب": "Request resubmitted",
+  "طلبك قيد المعالجة": "Your request is in progress",
+  "يعمل قسم GIS على طلبك حالياً. سيصلك إشعار عند الاعتماد.": "The GIS Department is working on your request. You'll be notified when it's approved.",
+  "تم اعتماد طلبك": "Your request was approved",
+  "يمكنك تنزيل الملفات النهائية من قسم الملفات.": "You can download the final files from the files section.",
+  "راجع سبب الرفض أعلاه، ويمكنك تقديم طلب جديد.": "See the reason above. You can submit a new request.",
+
+  /* اعتماد */
+  "اعتماد الطلب #{n}": "Approve request #{n}",
+  "اعتماد وإرسال للشركة": "Approve & send to company",
+  "الملفات التي ستصل للشركة": "Files the company will receive",
+  "ألغِ تحديد أي ملف لا تريد مشاركته": "Untick any file you don't want to share",
+  "لا توجد ملفات من GIS أو الصيانة": "No files from GIS or Maintenance",
+  "ملفات نهائية إضافية (اختياري)": "Additional final files (optional)",
+  "ملاحظة للشركة (اختياري)": "Note to the company (optional)",
+  "مثال: تم إنجاز الرفع الميداني، ومرفق المخطط النهائي": "e.g. Field survey completed — the final plan is attached",
+  "لن يتم إرسال أي ملف للشركة. هل تريد المتابعة؟": "No files will be sent to the company. Continue?",
+  "جارٍ رفع الملفات النهائية…": "Uploading final files…",
+  "تم اعتماد طلبك #{n}": "Your request #{n} was approved",
+  "الملفات النهائية متاحة للتنزيل": "The final files are ready to download",
+  "تم اعتماد الطلب #{n}": "Request #{n} approved",
+  "اعتمد GIS العمل وأغلق الطلب": "GIS approved the work and closed the request",
+  "تم اعتماد الطلب وإرساله للشركة": "Request approved and sent to the company"
+};
+
+// لتتبع النصوص غير المترجمة أثناء التطوير
+const missing = new Set();
+if (typeof window !== "undefined") window.__i18nMissing = missing;
+
+/**
+ * t("نص عربي", {n: 5}) — يرجع النص بلغة المستخدم مع تعويض المتغيرات.
+ * المتغيرات النصية تُترجم أيضاً إذا كانت لها ترجمة (مثل أسماء الأدوار وأنواع الطلبات).
+ */
+export function t(s, p) {
+  if (s == null) return "";
+  let out = s;
+  if (isEn) {
+    if (s in EN) out = EN[s];
+    else if (/[؀-ۿ]/.test(s)) missing.add(s);
+  }
+  if (p) out = out.replace(/\{(\w+)\}/g, (m, k) => {
+    const v = p[k];
+    if (v == null) return "";
+    return isEn && typeof v === "string" && v in EN ? EN[v] : v;
+  });
+  return out;
+}
+
+/** يترجم عناصر HTML الثابتة: data-i18n (النص)، data-i18n-ph (placeholder)، data-i18n-title (عنوان الصفحة) */
+export function applyI18n(root = document) {
+  root.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  root.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  const tt = root.querySelector?.("[data-i18n-title]");
+  if (tt) document.title = t(tt.dataset.i18nTitle);
+}

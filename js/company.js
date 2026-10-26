@@ -2,25 +2,27 @@
 import {
   db, F, $, $$, esc, icon, toast, busy, errMsg, requireAuth, renderShell, hideBoot,
   requestCard, emptyState, byDateDesc, getRequestTypes, filePicker, uploadFiles,
-  pickerMap, notify, hist
+  pickerMap, notify, hist, t
 } from "./core.js";
 
 const { profile } = await requireAuth(["company"]);
-renderShell(profile, { title: "طلباتي", subtitle: profile.orgName });
-$("#hello").textContent = `مرحباً، ${profile.orgName}`;
-$("#newBtn").innerHTML = `${icon("plus")} طلب جديد`;
-$("#filesTitle").innerHTML = `${icon("file")} إرفاق الملفات`;
-$("#mapTitle").innerHTML = `${icon("pin")} الموقع على الخريطة`;
-$("#myLoc").innerHTML = `${icon("crosshair")} موقعي`;
-$("#submitBtn").innerHTML = `${icon("send")} إرسال الطلب`;
+renderShell(profile, { title: t("طلباتي"), subtitle: profile.orgName });
+$("#hello").textContent = t("مرحباً، {name}", { name: profile.orgName || profile.name || "" });
+$("#newBtn").innerHTML = `${icon("plus")} ${t("طلب جديد")}`;
+$("#filesTitle").innerHTML = `${icon("file")} ${t("إرفاق الملفات")}`;
+$("#mapTitle").innerHTML = `${icon("pin")} ${t("الموقع على الخريطة")}`;
+$("#myLoc").innerHTML = `${icon("crosshair")} ${t("موقعي")}`;
+$("#submitBtn").innerHTML = `${icon("send")} ${t("إرسال الطلب")}`;
+const LOC_HINT = t("اضغط على الخريطة لتحديد الموقع (اختياري)");
+$("#locText").textContent = LOC_HINT;
 
 /* ---------- القائمة ---------- */
 const GROUPS = {
-  all:      { label: "الكل",          match: () => true },
-  active:   { label: "قيد المعالجة",  match: r => ["new", "gis_work", "maintenance", "gis_review"].includes(r.status) },
-  needs:    { label: "مطلوب استكمال", match: r => r.status === "needs_info" },
-  done:     { label: "مكتملة",        match: r => r.status === "approved" },
-  rejected: { label: "مرفوضة",        match: r => r.status === "rejected" }
+  all:      { label: t("الكل"),          match: () => true },
+  active:   { label: t("قيد المعالجة"),  match: r => ["new", "gis_work", "maintenance", "gis_review"].includes(r.status) },
+  needs:    { label: t("مطلوب استكمال"), match: r => r.status === "needs_info" },
+  done:     { label: t("مكتملة"),        match: r => r.status === "approved" },
+  rejected: { label: t("مرفوضة"),        match: r => r.status === "rejected" }
 };
 let filter = "all";
 let requests = [];
@@ -28,16 +30,16 @@ let requests = [];
 function render() {
   const count = k => requests.filter(GROUPS[k].match).length;
   $("#stats").innerHTML = `
-    <button class="stat blue" data-f="active"><b>${count("active")}</b><span>قيد المعالجة</span></button>
-    <button class="stat orange" data-f="needs"><b>${count("needs")}</b><span>مطلوب استكمال</span></button>
-    <button class="stat green" data-f="done"><b>${count("done")}</b><span>مكتملة</span></button>
-    <button class="stat purple" data-f="all"><b>${requests.length}</b><span>كل الطلبات</span></button>`;
+    <button class="stat blue" data-f="active"><b>${count("active")}</b><span>${t("قيد المعالجة")}</span></button>
+    <button class="stat orange" data-f="needs"><b>${count("needs")}</b><span>${t("مطلوب استكمال")}</span></button>
+    <button class="stat green" data-f="done"><b>${count("done")}</b><span>${t("مكتملة")}</span></button>
+    <button class="stat purple" data-f="all"><b>${requests.length}</b><span>${t("كل الطلبات")}</span></button>`;
   $("#tabs").innerHTML = Object.entries(GROUPS).map(([k, g]) =>
     `<button class="tab ${k === filter ? "active" : ""}" data-f="${k}">${g.label} <span class="n">${count(k)}</span></button>`).join("");
   const list = requests.filter(GROUPS[filter].match);
   $("#list").innerHTML = list.length
     ? list.map(r => requestCard(r, { showCompany: false, forCompany: true })).join("")
-    : emptyState(requests.length ? "لا توجد طلبات في هذا التصنيف" : "لا توجد طلبات بعد", requests.length ? "" : "اضغط \"طلب جديد\" لإرسال أول طلب");
+    : emptyState(requests.length ? t("لا توجد طلبات في هذا التصنيف") : t("لا توجد طلبات بعد"), requests.length ? "" : t("اضغط \"طلب جديد\" لإرسال أول طلب"));
   $$("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
 }
 
@@ -53,9 +55,9 @@ F.onSnapshot(
 
 /* ---------- طلب جديد ---------- */
 const types = await getRequestTypes();
-$("#typeSelect").innerHTML = `<option value="">اختر نوع الطلب</option>` + types.map(t => `<option>${esc(t)}</option>`).join("");
+$("#typeSelect").innerHTML = `<option value="">${t("اختر نوع الطلب")}</option>` + types.map(v => `<option value="${esc(v)}">${esc(t(v))}</option>`).join("");
 
-const picker = filePicker($("#picker"), { label: "اختيار ملفات" });
+const picker = filePicker($("#picker"), { label: t("اختيار ملفات") });
 let location_ = null;
 let mapCtl = null;
 
@@ -67,7 +69,7 @@ function openNew() {
   if (!mapCtl) {
     mapCtl = pickerMap($("#pickMap"), null, loc => {
       location_ = loc;
-      $("#locText").innerHTML = loc ? `${icon("pin")} <code>${loc.lat}, ${loc.lng}</code>` : "اضغط على الخريطة لتحديد الموقع (اختياري)";
+      $("#locText").innerHTML = loc ? `${icon("pin")} <code>${loc.lat}, ${loc.lng}</code>` : esc(LOC_HINT);
     });
   }
   setTimeout(() => mapCtl.map.invalidateSize(), 60);
@@ -89,9 +91,9 @@ $("#newForm").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target, btn = $("#submitBtn");
   const type = f.type.value, description = f.description.value.trim();
-  if (!type) { toast("اختر نوع الطلب", "error"); return; }
-  if (!description) { toast("اكتب وصف الطلب", "error"); return; }
-  if (!picker.files.length && !confirm("لم ترفق أي ملف. هل تريد الإرسال بدون ملفات؟")) return;
+  if (!type) { toast(t("اختر نوع الطلب"), "error"); return; }
+  if (!description) { toast(t("اكتب وصف الطلب"), "error"); return; }
+  if (!picker.files.length && !confirm(t("لم ترفق أي ملف. هل تريد الإرسال بدون ملفات؟"))) return;
 
   busy(btn, true);
   try {
@@ -106,8 +108,8 @@ $("#newForm").addEventListener("submit", async e => {
         number: n, type, description,
         location: location_,
         companyId: profile.id,
-        companyName: profile.orgName,
-        contactName: profile.name,
+        companyName: profile.orgName || profile.name || profile.email || "",
+        contactName: profile.name || "",
         contactPhone: profile.phone || "",
         contactEmail: profile.email || "",
         status: "new",
@@ -122,18 +124,18 @@ $("#newForm").addEventListener("submit", async e => {
     });
 
     if (picker.files.length) {
-      const metas = await uploadFiles(reqRef.id, "company", picker.files, profile, "جارٍ رفع ملفات الطلب…");
+      const metas = await uploadFiles(reqRef.id, "company", picker.files, profile, t("جارٍ رفع ملفات الطلب…"));
       await F.updateDoc(reqRef, { companyFiles: metas, updatedAt: F.serverTimestamp() });
     }
 
     await notify({
       toRole: "gis",
-      title: `طلب جديد #${number}`,
-      body: `${type} — ${profile.orgName}`,
+      title: "طلب جديد #{n}", tp: { n: number },
+      body: "{type} — {org}", bp: { type, org: profile.orgName || "" },
       link: `request.html?id=${reqRef.id}`
     });
 
-    toast(`تم إرسال الطلب #${number} بنجاح`, "success");
+    toast(t("تم إرسال الطلب #{n} بنجاح", { n: number }), "success");
     f.reset(); picker.clear(); mapCtl?.clear();
     location.href = `request.html?id=${reqRef.id}&sent=1`;
   } catch (err) {

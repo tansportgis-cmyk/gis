@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>لوحة GIS — منصة طلبات GIS</title>
+  <title data-i18n-title="لوحة GIS — منصة طلبات GIS">لوحة GIS — منصة طلبات GIS</title>
+  <script>try{if(localStorage.getItem("lang")==="en"){document.documentElement.lang="en";document.documentElement.dir="ltr"}}catch(e){}</script>
   <meta name="theme-color" content="#1d6fe0">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
@@ -23,7 +24,7 @@
     <!-- الطلبات -->
     <section id="tab-requests">
       <div class="stats" id="stats"></div>
-      <div class="search"><span id="searchIc"></span><input id="search" type="search" placeholder="ابحث برقم الطلب أو اسم الشركة أو الوصف"></div>
+      <div class="search"><span id="searchIc"></span><input id="search" type="search" data-i18n-ph="ابحث برقم الطلب أو اسم الشركة أو الوصف" placeholder="ابحث برقم الطلب أو اسم الشركة أو الوصف"></div>
       <div class="tabs" id="filters"></div>
       <div class="req-list" id="list"></div>
     </section>
@@ -37,12 +38,12 @@
     <!-- الإعدادات -->
     <section id="tab-settings" hidden>
       <div class="card card-pad section">
-        <div class="section-head"><h3>أنواع الطلبات</h3></div>
-        <p class="muted" style="font-size:14px;margin-bottom:12px">هذه الأنواع تظهر للشركات عند إرسال طلب جديد.</p>
+        <div class="section-head"><h3 data-i18n="أنواع الطلبات">أنواع الطلبات</h3></div>
+        <p class="muted" style="font-size:14px;margin-bottom:12px" data-i18n="هذه الأنواع تظهر للشركات عند إرسال طلب جديد.">هذه الأنواع تظهر للشركات عند إرسال طلب جديد.</p>
         <ul class="types-list" id="types"></ul>
         <form class="add-row" id="addType">
-          <input class="input" name="t" placeholder="نوع جديد، مثال: أعمال مساحة" required>
-          <button class="btn btn-primary" type="submit">إضافة</button>
+          <input class="input" name="t" data-i18n-ph="نوع جديد، مثال: أعمال مساحة" placeholder="نوع جديد، مثال: أعمال مساحة" required>
+          <button class="btn btn-primary" type="submit" data-i18n="إضافة">إضافة</button>
         </form>
       </div>
     </section>

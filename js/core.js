@@ -6,8 +6,9 @@ import * as A from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"
 import * as F from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import * as S from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { firebaseConfig, APP } from "./firebase-config.js";
+import { t, lang, isEn, setLang, applyI18n } from "./i18n.js";
 
-export { A, F, S, APP };
+export { A, F, S, APP, t, lang, isEn, setLang, applyI18n };
 
 export const app = initializeApp(firebaseConfig);
 export const auth = A.getAuth(app);
@@ -27,13 +28,15 @@ export function esc(v) {
   return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-export const ROLES = {
+// القيم المخزنة بالعربي، والعرض يُترجم عبر t()
+export const ROLE_KEYS = {
   company: "شركة",
   maintenance: "قسم الصيانة",
   gis: "GIS (مدير النظام)"
 };
+export const ROLES = new Proxy(ROLE_KEYS, { get: (o, k) => (k in o ? t(o[k]) : undefined) });
 
-export const STATUS = {
+const STATUS_KEYS = {
   new:         { label: "جديد",            cls: "st-new" },
   needs_info:  { label: "مطلوب استكمال",   cls: "st-warn" },
   gis_work:    { label: "قيد العمل في GIS", cls: "st-gis" },
@@ -42,6 +45,7 @@ export const STATUS = {
   approved:    { label: "مكتمل",            cls: "st-done" },
   rejected:    { label: "مرفوض",            cls: "st-rejected" }
 };
+export const STATUS = Object.fromEntries(Object.entries(STATUS_KEYS).map(([k, v]) => [k, { ...v, label: t(v.label) }]));
 
 export const HISTORY_LABELS = {
   created:        "تم تقديم الطلب",
@@ -67,7 +71,7 @@ export const DEFAULT_TYPES = ["أعمال GIS", "أعمال ميدانية", "ت
 const COMPANY_INTERNAL = ["gis_work", "maintenance", "gis_review"];
 export function chip(status, forCompany = false) {
   const s = forCompany && COMPANY_INTERNAL.includes(status)
-    ? { label: "قيد المعالجة", cls: "st-gis" }
+    ? { label: t("قيد المعالجة"), cls: "st-gis" }
     : (STATUS[status] || { label: status, cls: "" });
   return `<span class="chip ${s.cls}">${esc(s.label)}</span>`;
 }
@@ -83,18 +87,19 @@ export function toDate(ts) {
   if (ts.seconds) return new Date(ts.seconds * 1000);
   return new Date(ts);
 }
-const dFmt = new Intl.DateTimeFormat("ar-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" });
-const dtFmt = new Intl.DateTimeFormat("ar-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+const LOCALE = isEn ? "en-GB" : "ar-u-nu-latn";
+const dFmt = new Intl.DateTimeFormat(LOCALE, { year: "numeric", month: "2-digit", day: "2-digit" });
+const dtFmt = new Intl.DateTimeFormat(LOCALE, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 export const fmtDate = ts => { const d = toDate(ts); return d ? dFmt.format(d) : "—"; };
 export const fmtDateTime = ts => { const d = toDate(ts); return d ? dtFmt.format(d) : "—"; };
 export function timeAgo(ts) {
   const d = toDate(ts);
-  if (!d) return "الآن";
+  if (!d) return t("الآن");
   const s = Math.max(0, (Date.now() - d.getTime()) / 1000);
-  if (s < 60) return "الآن";
-  if (s < 3600) return `منذ ${Math.floor(s / 60)} دقيقة`;
-  if (s < 86400) return `منذ ${Math.floor(s / 3600)} ساعة`;
-  if (s < 86400 * 7) return `منذ ${Math.floor(s / 86400)} يوم`;
+  if (s < 60) return t("الآن");
+  if (s < 3600) return t("منذ {n} دقيقة", { n: Math.floor(s / 60) });
+  if (s < 86400) return t("منذ {n} ساعة", { n: Math.floor(s / 3600) });
+  if (s < 86400 * 7) return t("منذ {n} يوم", { n: Math.floor(s / 86400) });
   return fmtDate(ts);
 }
 export function fmtSize(b) {
@@ -120,6 +125,7 @@ const P = {
   pin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.38 3.62a1 1 0 0 1 3 3L7.37 18.63a2 2 0 0 1-.86.5l-2.87.84a.5.5 0 0 1-.62-.62l.84-2.87a2 2 0 0 1 .5-.86z"/>',
   send: '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
   clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
   building: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>',
@@ -134,11 +140,20 @@ const P = {
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
   crosshair: '<circle cx="12" cy="12" r="10"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/>',
   external: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
-  ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>'
+  ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/>'
 };
 export function icon(name, cls = "") {
   return `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[name] || ""}</svg>`;
 }
+
+/* ---------------- زر تغيير اللغة ---------------- */
+export function langButtonHTML(cls = "lang-btn") {
+  return `<button type="button" class="${cls}" data-lang-toggle aria-label="${isEn ? "العربية" : "English"}">${icon("globe")}<span>${isEn ? "عربي" : "EN"}</span></button>`;
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-lang-toggle]")) setLang(isEn ? "ar" : "en");
+});
 
 /* ---------------- رسائل الخطأ ---------------- */
 export function errMsg(e) {
@@ -160,18 +175,18 @@ export function errMsg(e) {
     "unavailable": "تعذر الاتصال بالخادم، تحقق من الإنترنت",
     "not-found": "العنصر غير موجود"
   };
-  return map[c] || e?.message || "حدث خطأ غير متوقع";
+  return map[c] ? t(map[c]) : (e?.message || t("حدث خطأ غير متوقع"));
 }
 
 /* ---------------- الإشعارات المنبثقة (Toast) ---------------- */
 export function toast(msg, type = "info", ms = 3400) {
   let wrap = $("#toasts");
   if (!wrap) { wrap = document.createElement("div"); wrap.id = "toasts"; document.body.append(wrap); }
-  const t = document.createElement("div");
-  t.className = "toast " + type;
-  t.textContent = msg;
-  wrap.append(t);
-  setTimeout(() => { t.classList.add("out"); setTimeout(() => t.remove(), 300); }, ms);
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.textContent = msg;
+  wrap.append(el);
+  setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 300); }, ms);
 }
 
 export function busy(btn, on) {
@@ -181,7 +196,7 @@ export function busy(btn, on) {
 }
 
 /* شريط تقدم الرفع */
-export function progressBar(label = "جارٍ الرفع…") {
+export function progressBar(label = t("جارٍ الرفع…")) {
   const el = document.createElement("div");
   el.className = "upload-progress";
   el.innerHTML = `<div class="up-label">${esc(label)} <b>0%</b></div><div class="up-track"><div class="up-fill"></div></div>`;
@@ -193,14 +208,14 @@ export function progressBar(label = "جارٍ الرفع…") {
 }
 
 /* ---------------- النوافذ (Modal) ---------------- */
-export function modal({ title, body = "", confirmText = "تأكيد", cancelText = "إلغاء", danger = false, success = false, onConfirm, onOpen, wide = false }) {
+export function modal({ title, body = "", confirmText = t("تأكيد"), cancelText = t("إلغاء"), danger = false, success = false, onConfirm, onOpen, wide = false }) {
   return new Promise(resolve => {
     const bd = document.createElement("div");
     bd.className = "modal-backdrop";
     const okCls = danger ? "btn-danger" : success ? "btn-success" : "btn-primary";
     bd.innerHTML = `
       <div class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true">
-        <div class="modal-head"><h3>${esc(title)}</h3><button class="icon-btn" data-x aria-label="إغلاق">${icon("x")}</button></div>
+        <div class="modal-head"><h3>${esc(title)}</h3><button class="icon-btn" data-x aria-label="${t("إغلاق")}">${icon("x")}</button></div>
         <div class="modal-body">${body}</div>
         <div class="modal-foot">
           <button class="btn ${okCls}" data-ok>${esc(confirmText)}</button>
@@ -241,13 +256,13 @@ export function modal({ title, body = "", confirmText = "تأكيد", cancelText
   });
 }
 
-export function askNote({ title, label, placeholder = "", required = true, confirmText = "تأكيد", danger = false, success = false, onConfirm }) {
+export function askNote({ title, label, placeholder = "", required = true, confirmText = t("تأكيد"), danger = false, success = false, onConfirm }) {
   return modal({
     title, confirmText, danger, success,
     body: `<label class="field"><span>${esc(label)}${required ? ' <i class="req">*</i>' : ""}</span><textarea rows="4" placeholder="${esc(placeholder)}"></textarea></label>`,
     onConfirm: async bd => {
       const v = bd.querySelector("textarea").value.trim();
-      if (required && !v) { toast("الرجاء كتابة الملاحظة", "error"); return false; }
+      if (required && !v) { toast(t("الرجاء كتابة الملاحظة"), "error"); return false; }
       if (onConfirm) await onConfirm(v);
       return v;
     }
@@ -256,6 +271,7 @@ export function askNote({ title, label, placeholder = "", required = true, confi
 
 /* ---------------- المصادقة وحماية الصفحات ---------------- */
 export function requireAuth(roles) {
+  applyI18n();
   return new Promise(resolve => {
     const unsub = A.onAuthStateChanged(auth, async user => {
       unsub();
@@ -265,7 +281,7 @@ export function requireAuth(roles) {
         const p = snap.exists() ? { id: snap.id, ...snap.data() } : null;
         if (!p || p.status !== "approved") { location.replace("index.html"); return; }
         if (roles && !roles.includes(p.role)) { location.replace(homeFor(p.role)); return; }
-        // لو تم إيقاف الحساب أثناء الاستخدام
+        // لو تم إيقاف الحساب أو حذفه أثناء الاستخدام
         F.onSnapshot(F.doc(db, "users", user.uid), s => {
           const d = s.data();
           if (!d || d.status !== "approved" || (roles && !roles.includes(d.role))) location.replace("index.html");
@@ -273,7 +289,7 @@ export function requireAuth(roles) {
         resolve({ user, profile: p });
       } catch (e) {
         console.error(e);
-        document.body.innerHTML = `<div class="fatal">${icon("alert")}<h2>تعذر تحميل الحساب</h2><p>${esc(errMsg(e))}</p><a class="btn btn-primary" href="index.html">العودة</a></div>`;
+        document.body.innerHTML = `<div class="fatal">${icon("alert")}<h2>${t("تعذر تحميل الحساب")}</h2><p>${esc(errMsg(e))}</p><a class="btn btn-primary" href="index.html">${t("العودة")}</a></div>`;
       }
     });
   });
@@ -291,23 +307,24 @@ export function hideBoot() {
 
 /* ---------------- الشريط العلوي ---------------- */
 export function renderShell(profile, { title, subtitle = "", back = "" } = {}) {
-  const initials = (profile.orgName || profile.name || "؟").trim().slice(0, 1);
+  const initials = (profile.orgName || profile.name || profile.email || "?").trim().slice(0, 1).toUpperCase();
   $("#topbar").innerHTML = `
     <div class="topbar-inner">
       <div class="tb-start">
-        ${back ? `<a class="icon-btn" href="${esc(back)}" aria-label="رجوع">${icon("back")}</a>` : `<div class="brand-mark">${icon("layers")}</div>`}
+        ${back ? `<a class="icon-btn back-btn" href="${esc(back)}" aria-label="${t("رجوع")}">${icon("back")}</a>` : `<div class="brand-mark">${icon("layers")}</div>`}
         <div class="tb-title"><strong>${esc(title)}</strong>${subtitle ? `<small>${esc(subtitle)}</small>` : ""}</div>
       </div>
       <div class="tb-end">
+        ${langButtonHTML()}
         <div class="pop-wrap">
-          <button class="icon-btn" id="bellBtn" aria-label="الإشعارات">${icon("bell")}<span class="badge-dot" id="bellCount" hidden></span></button>
+          <button class="icon-btn" id="bellBtn" aria-label="${t("الإشعارات")}">${icon("bell")}<span class="badge-dot" id="bellCount" hidden></span></button>
           <div class="dropdown bell-panel" id="bellPanel" hidden></div>
         </div>
         <div class="pop-wrap">
-          <button class="avatar" id="userBtn" aria-label="الحساب">${esc(initials)}</button>
+          <button class="avatar" id="userBtn" aria-label="${t("الحساب")}">${esc(initials)}</button>
           <div class="dropdown user-menu" id="userMenu" hidden>
-            <div class="um-head"><strong>${esc(profile.orgName || profile.name)}</strong><small>${esc(profile.name)}</small><small>${esc(profile.email)}</small><span class="chip st-new">${esc(ROLES[profile.role] || profile.role)}</span></div>
-            <button class="um-item" id="logoutBtn">${icon("logout")} تسجيل الخروج</button>
+            <div class="um-head"><strong>${esc(profile.orgName || profile.name || profile.email)}</strong>${profile.name ? `<small>${esc(profile.name)}</small>` : ""}<small>${esc(profile.email)}</small><span class="chip st-new">${esc(ROLES[profile.role] || profile.role)}</span></div>
+            <button class="um-item" id="logoutBtn">${icon("logout")} ${t("تسجيل الخروج")}</button>
           </div>
         </div>
       </div>
@@ -328,64 +345,108 @@ export function renderShell(profile, { title, subtitle = "", back = "" } = {}) {
   initBell(profile);
 }
 
-/* ---------------- نظام الإشعارات ---------------- */
-export async function notify({ toUid = null, toRole = null, title, body = "", link = "" }) {
+/* ---------------- نظام الإشعارات ----------------
+   العنوان والنص يُحفظان كنص عربي (مفتاح ترجمة) + متغيرات،
+   ويُترجمان عند العرض حسب لغة المستلم. */
+export async function notify({ toUid = null, toRole = null, title, tp = null, body = "", bp = null, link = "" }) {
   try {
     await F.addDoc(F.collection(db, "notifications"), {
-      toUid, toRole, title, body, link,
+      toUid, toRole, title, tp, body, bp, link,
       from: auth.currentUser?.uid || null,
       readBy: [],
       createdAt: F.serverTimestamp()
     });
   } catch (e) { console.warn("notify failed", e); }
 }
+const nTitle = n => t(n.title || "", n.tp || undefined);
+const nBody = n => t(n.body || "", n.bp || undefined);
 
 function showDeviceNotification(n) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const opts = { body: n.body || "", icon: "icons/icon-192.png", tag: n.id, data: { link: n.link } };
+  const opts = { body: nBody(n), icon: "icons/icon-192.png", tag: n.id, data: { link: n.link } };
   if (navigator.serviceWorker?.controller) {
-    navigator.serviceWorker.ready.then(r => r.showNotification(n.title, opts)).catch(() => {});
+    navigator.serviceWorker.ready.then(r => r.showNotification(nTitle(n), opts)).catch(() => {});
   } else {
-    try { new Notification(n.title, opts); } catch {}
+    try { new Notification(nTitle(n), opts); } catch {}
   }
 }
+
+// هل رابط الإشعار يشير للصفحة المفتوحة حالياً؟
+function linkIsCurrent(link) {
+  if (!link) return false;
+  try {
+    const u = new URL(link, location.href);
+    const file = p => p.split("/").pop() || "index.html";
+    if (file(u.pathname) !== file(location.pathname)) return false;
+    const id = u.searchParams.get("id");
+    if (id) return id === new URLSearchParams(location.search).get("id");
+    if (u.hash) return u.hash === location.hash;
+    return true;
+  } catch { return false; }
+}
+
+let bellApi = null;
+/** تحديد إشعارات الصفحة الحالية كمقروءة (تُستدعى عند تغيير التبويب) */
+export function markCurrentPageRead() { bellApi?.markCurrent(); }
 
 function initBell(profile) {
   const uid = profile.id;
   let mine = [], byRole = [];
-  let firstLoad = { a: true, b: true };
+  const firstLoad = { a: true, b: true };
   const seen = new Set();
+  const marking = new Set();
+
+  const isUnread = n => !(n.readBy || []).includes(uid);
+  const markRead = ids => Promise.all(ids.filter(id => !marking.has(id)).map(id => {
+    marking.add(id);
+    return F.updateDoc(F.doc(db, "notifications", id), { readBy: F.arrayUnion(uid) })
+      .catch(e => console.warn("mark read failed", e))
+      .finally(() => marking.delete(id));
+  }));
+  const all = () => [...mine, ...byRole].sort(byDateDesc);
+  const markCurrent = () => {
+    const ids = all().filter(n => isUnread(n) && linkIsCurrent(n.link)).map(n => n.id);
+    if (ids.length) markRead(ids);
+  };
+  bellApi = { markCurrent };
+  window.addEventListener("hashchange", markCurrent);
 
   const render = () => {
-    const all = [...mine, ...byRole].sort(byDateDesc).slice(0, 40);
-    const unread = all.filter(n => !(n.readBy || []).includes(uid));
+    const list = all().slice(0, 40);
+    const unread = list.filter(isUnread);
     const cnt = $("#bellCount");
     cnt.hidden = unread.length === 0;
     cnt.textContent = unread.length > 9 ? "9+" : unread.length;
     const canAsk = "Notification" in window && Notification.permission === "default";
     $("#bellPanel").innerHTML = `
-      <div class="bp-head"><strong>الإشعارات</strong>${unread.length ? `<button class="link-btn" id="markAll">تحديد الكل كمقروء</button>` : ""}</div>
-      ${canAsk ? `<button class="bp-enable" id="enableNotif">${icon("bell")} تفعيل تنبيهات الجهاز</button>` : ""}
+      <div class="bp-head"><strong>${t("الإشعارات")}</strong>${unread.length ? `<button class="link-btn" id="markAll">${t("تحديد الكل كمقروء")}</button>` : ""}</div>
+      ${canAsk ? `<button class="bp-enable" id="enableNotif">${icon("bell")} ${t("تفعيل تنبيهات الجهاز")}</button>` : ""}
       <div class="bp-list">
-        ${all.length ? all.map(n => `
-          <button class="bp-item ${(n.readBy || []).includes(uid) ? "" : "unread"}" data-id="${esc(n.id)}" data-link="${esc(n.link || "")}">
+        ${list.length ? list.map(n => `
+          <button class="bp-item ${isUnread(n) ? "unread" : ""}" data-id="${esc(n.id)}" data-link="${esc(n.link || "")}">
             <span class="bp-ic">${icon("bell")}</span>
-            <span class="bp-txt"><strong>${esc(n.title)}</strong><small>${esc(n.body || "")}</small><em>${esc(timeAgo(n.createdAt))}</em></span>
-          </button>`).join("") : `<div class="bp-empty">لا توجد إشعارات</div>`}
+            <span class="bp-txt"><strong>${esc(nTitle(n))}</strong><small>${esc(nBody(n))}</small><em>${esc(timeAgo(n.createdAt))}</em></span>
+          </button>`).join("") : `<div class="bp-empty">${t("لا توجد إشعارات")}</div>`}
       </div>`;
     $("#markAll")?.addEventListener("click", async e => {
       e.stopPropagation();
-      await Promise.all(unread.map(n => F.updateDoc(F.doc(db, "notifications", n.id), { readBy: F.arrayUnion(uid) }).catch(() => {})));
+      await markRead(unread.map(n => n.id));
     });
     $("#enableNotif")?.addEventListener("click", async e => {
       e.stopPropagation();
       const r = await Notification.requestPermission();
-      toast(r === "granted" ? "تم تفعيل التنبيهات" : "لم يتم السماح بالتنبيهات", r === "granted" ? "success" : "info");
+      toast(r === "granted" ? t("تم تفعيل التنبيهات") : t("لم يتم السماح بالتنبيهات"), r === "granted" ? "success" : "info");
       render();
     });
-    $$(".bp-item").forEach(b => b.addEventListener("click", async () => {
-      F.updateDoc(F.doc(db, "notifications", b.dataset.id), { readBy: F.arrayUnion(uid) }).catch(() => {});
-      if (b.dataset.link) location.href = b.dataset.link;
+    $$(".bp-item").forEach(b => b.addEventListener("click", async e => {
+      e.stopPropagation();
+      const n = all().find(x => x.id === b.dataset.id);
+      // ننتظر حفظ "مقروء" قبل الانتقال، وإلا يلغيه المتصفح عند مغادرة الصفحة
+      if (n && isUnread(n)) { b.classList.remove("unread"); await markRead([n.id]); }
+      const link = b.dataset.link;
+      if (!link) return;
+      if (linkIsCurrent(link)) { $("#bellPanel").hidden = true; return; }
+      location.href = link;
     }));
   };
 
@@ -394,13 +455,14 @@ function initBell(profile) {
     if (!firstLoad[key]) {
       snap.docChanges().forEach(ch => {
         const n = { id: ch.doc.id, ...ch.doc.data() };
-        if (ch.type === "added" && !seen.has(n.id) && !(n.readBy || []).includes(uid) && n.from !== uid) showDeviceNotification(n);
+        if (ch.type === "added" && !seen.has(n.id) && isUnread(n) && n.from !== uid && !linkIsCurrent(n.link)) showDeviceNotification(n);
       });
     }
     list.forEach(n => seen.add(n.id));
     firstLoad[key] = false;
     if (key === "a") mine = list; else byRole = list;
     render();
+    markCurrent();
   };
   const col = F.collection(db, "notifications");
   F.onSnapshot(F.query(col, F.where("toUid", "==", uid)), s => handle("a", s), e => console.warn(e));
@@ -419,8 +481,8 @@ export const hist = (p, action, note = "") => ({
 export async function getRequestTypes() {
   try {
     const s = await F.getDoc(F.doc(db, "settings", "app"));
-    const t = s.exists() ? s.data().requestTypes : null;
-    return t?.length ? t : DEFAULT_TYPES;
+    const list = s.exists() ? s.data().requestTypes : null;
+    return list?.length ? list : DEFAULT_TYPES;
   } catch { return DEFAULT_TYPES; }
 }
 
@@ -430,9 +492,9 @@ const safeName = n => n.replace(/[\/\\#?%*:|"<>\[\]]/g, "_");
 export async function uploadFiles(rid, section, files, profile, label) {
   if (!files.length) return [];
   for (const f of files) {
-    if (f.size > APP.maxFileMB * 1048576) throw new Error(`الملف "${f.name}" أكبر من ${APP.maxFileMB} ميجابايت`);
+    if (f.size > APP.maxFileMB * 1048576) throw new Error(t("الملف \"{name}\" أكبر من {mb} ميجابايت", { name: f.name, mb: APP.maxFileMB }));
   }
-  const bar = progressBar(label || `جارٍ رفع ${files.length} ملف…`);
+  const bar = progressBar(label || t("جارٍ رفع {n} ملف…", { n: files.length }));
   const total = files.reduce((s, f) => s + f.size, 0) || 1;
   let done = 0;
   const out = [];
@@ -471,21 +533,21 @@ function fileExt(name) { const m = /\.([a-z0-9]+)$/i.exec(name || ""); return m 
 
 /** يعرض قائمة ملفات مرفوعة. opts: {canDelete, thumbs, selectable, checked} */
 export function filesHTML(files = [], opts = {}) {
-  if (!files.length) return `<div class="files-empty">${icon("file")} لا توجد ملفات</div>`;
+  if (!files.length) return `<div class="files-empty">${icon("file")} ${t("لا توجد ملفات")}</div>`;
   const imgs = opts.thumbs ? files.filter(isImage) : [];
   const others = opts.thumbs ? files.filter(f => !isImage(f)) : files;
   const thumbs = imgs.length ? `<div class="thumb-grid">${imgs.map(f => `
       <button type="button" class="thumb" data-open="${esc(f.path)}" title="${esc(f.name)}">
         <img data-thumb="${esc(f.path)}" alt="${esc(f.name)}">
-        ${opts.canDelete ? `<span class="thumb-del" data-del="${esc(f.path)}" role="button" aria-label="حذف">${icon("x")}</span>` : ""}
+        ${opts.canDelete ? `<span class="thumb-del" data-del="${esc(f.path)}" role="button" aria-label="${t("حذف")}">${icon("x")}</span>` : ""}
       </button>`).join("")}</div>` : "";
   const list = others.length ? `<ul class="file-list">${others.map(f => `
       <li class="file-item">
         ${opts.selectable ? `<input type="checkbox" class="file-check" value="${esc(f.path)}" ${opts.checked !== false ? "checked" : ""}>` : ""}
         <span class="fi-ic">${icon(fileIcon(f))}<em>${esc(fileExt(f.name))}</em></span>
         <span class="fi-txt"><strong>${esc(f.name)}</strong><small><bdi>${esc(fmtSize(f.size))}</bdi>${f.byName ? ` · <bdi>${esc(f.byName)}</bdi>` : ""}${f.uploadedAt ? ` · <bdi>${esc(fmtDate(f.uploadedAt))}</bdi>` : ""}</small></span>
-        <button type="button" class="icon-btn sm" data-open="${esc(f.path)}" aria-label="تنزيل">${icon("download")}</button>
-        ${opts.canDelete ? `<button type="button" class="icon-btn sm danger" data-del="${esc(f.path)}" aria-label="حذف">${icon("trash")}</button>` : ""}
+        <button type="button" class="icon-btn sm" data-open="${esc(f.path)}" aria-label="${t("تنزيل")}">${icon("download")}</button>
+        ${opts.canDelete ? `<button type="button" class="icon-btn sm danger" data-del="${esc(f.path)}" aria-label="${t("حذف")}">${icon("trash")}</button>` : ""}
       </li>`).join("")}</ul>` : "";
   return thumbs + list;
 }
@@ -511,7 +573,7 @@ export function hydrateThumbs(container) {
 }
 
 /** منتقي ملفات محلي (قبل الرفع) */
-export function filePicker(el, { camera = false, label = "إرفاق ملفات", accept = "" } = {}) {
+export function filePicker(el, { camera = false, label = t("إرفاق ملفات"), accept = "" } = {}) {
   let files = [];
   el.innerHTML = `
     <div class="dropzone">
@@ -520,9 +582,9 @@ export function filePicker(el, { camera = false, label = "إرفاق ملفات"
       <div class="dz-icon">${icon("upload")}</div>
       <div class="dz-actions">
         <button type="button" class="btn btn-outline btn-sm" data-pick>${icon("file")} ${esc(label)}</button>
-        ${camera ? `<button type="button" class="btn btn-outline btn-sm" data-campick>${icon("camera")} تصوير</button>` : ""}
+        ${camera ? `<button type="button" class="btn btn-outline btn-sm" data-campick>${icon("camera")} ${t("تصوير")}</button>` : ""}
       </div>
-      <small class="muted">أو اسحب الملفات هنا · الحد الأقصى ${APP.maxFileMB} ميجابايت للملف</small>
+      <small class="muted">${t("أو اسحب الملفات هنا · الحد الأقصى {mb} ميجابايت للملف", { mb: APP.maxFileMB })}</small>
     </div>
     <ul class="file-list" data-list></ul>`;
   const list = $("[data-list]", el);
@@ -531,12 +593,12 @@ export function filePicker(el, { camera = false, label = "إرفاق ملفات"
       <li class="file-item">
         <span class="fi-ic">${icon(fileIcon(f))}<em>${esc(fileExt(f.name))}</em></span>
         <span class="fi-txt"><strong>${esc(f.name)}</strong><small><bdi>${esc(fmtSize(f.size))}</bdi></small></span>
-        <button type="button" class="icon-btn sm" data-rm="${i}" aria-label="إزالة">${icon("x")}</button>
+        <button type="button" class="icon-btn sm" data-rm="${i}" aria-label="${t("إزالة")}">${icon("x")}</button>
       </li>`).join("");
   };
   const add = fl => {
     for (const f of fl) {
-      if (f.size > APP.maxFileMB * 1048576) { toast(`"${f.name}" أكبر من ${APP.maxFileMB} ميجابايت`, "error"); continue; }
+      if (f.size > APP.maxFileMB * 1048576) { toast(t("الملف \"{name}\" أكبر من {mb} ميجابايت", { name: f.name, mb: APP.maxFileMB }), "error"); continue; }
       files.push(f);
     }
     render();
@@ -552,8 +614,8 @@ export function filePicker(el, { camera = false, label = "إرفاق ملفات"
     if (b) { files.splice(+b.dataset.rm, 1); render(); }
   });
   const dz = $(".dropzone", el);
-  ["dragenter", "dragover"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add("over"); }));
-  ["dragleave", "drop"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove("over"); }));
+  ["dragenter", "dragover"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove("over"); }));
   dz.addEventListener("drop", e => add(e.dataTransfer.files));
   return { get files() { return files; }, clear() { files = []; render(); } };
 }
@@ -582,10 +644,10 @@ export function pickerMap(el, initial, onChange) {
   return {
     map,
     locate() {
-      if (!navigator.geolocation) { toast("المتصفح لا يدعم تحديد الموقع", "error"); return; }
+      if (!navigator.geolocation) { toast(t("المتصفح لا يدعم تحديد الموقع"), "error"); return; }
       navigator.geolocation.getCurrentPosition(
         p => { const ll = L.latLng(p.coords.latitude, p.coords.longitude); map.setView(ll, 16); set(ll); },
-        () => toast("تعذر تحديد موقعك، اسمح بالوصول للموقع", "error"),
+        () => toast(t("تعذر تحديد موقعك، اسمح بالوصول للموقع"), "error"),
         { enableHighAccuracy: true, timeout: 12000 }
       );
     },
@@ -608,8 +670,8 @@ export function requestCard(r, { showCompany = true, forCompany = false } = {}) 
     <a class="req-card" href="request.html?id=${encodeURIComponent(r.id)}">
       <div class="req-icon">${icon(r.location ? "pin" : "file")}</div>
       <div class="req-body">
-        <div class="req-top"><strong>طلب #${esc(r.number)}</strong>${chip(r.status, forCompany)}</div>
-        <div class="req-type">${esc(r.type)}</div>
+        <div class="req-top"><strong>${t("طلب #{n}", { n: r.number })}</strong>${chip(r.status, forCompany)}</div>
+        <div class="req-type">${esc(t(r.type || ""))}</div>
         <p class="req-desc">${esc(r.description)}</p>
         <div class="req-meta">
           ${showCompany ? `<span>${icon("building")} ${esc(r.companyName)}</span>` : ""}
