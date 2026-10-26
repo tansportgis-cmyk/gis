@@ -305,9 +305,115 @@ export function hideBoot() {
   const m = $("#main"); if (m) m.hidden = false;
 }
 
+/* ---------------- الصورة الشخصية ---------------- */
+export function initials(u) {
+  return (u?.orgName || u?.name || u?.email || "?").trim().slice(0, 1).toUpperCase();
+}
+/** صورة الحساب أو أول حرف من الاسم */
+export function avatarHTML(u, cls = "") {
+  return u?.photoURL
+    ? `<span class="av ${cls}"><img src="${esc(u.photoURL)}" alt="" loading="lazy" referrerpolicy="no-referrer"></span>`
+    : `<span class="av ${cls}">${esc(initials(u))}</span>`;
+}
+/** يصغّر الصورة إلى مربع (افتراضياً 400px) ويحوّلها JPEG */
+export function resizeImage(file, size = 400) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) { reject(new Error(t("الرجاء اختيار صورة"))); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.width, img.height);
+      const c = document.createElement("canvas");
+      c.width = c.height = size;
+      c.getContext("2d").drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? resolve(b) : reject(new Error(t("تعذر قراءة الصورة"))), "image/jpeg", 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(t("تعذر قراءة الصورة"))); };
+    img.src = url;
+  });
+}
+/** يرفع صورة الحساب ويرجع {photoURL, photoPath} ويحذف القديمة */
+export async function uploadAvatar(uid, blob, oldPath) {
+  const path = `avatars/${uid}/avatar_${Date.now()}.jpg`;
+  const r = S.ref(storage, path);
+  await S.uploadBytes(r, blob, { contentType: "image/jpeg" });
+  const photoURL = await S.getDownloadURL(r);
+  if (oldPath) S.deleteObject(S.ref(storage, oldPath)).catch(() => {});
+  return { photoURL, photoPath: path };
+}
+/** عنصر اختيار صورة: معاينة دائرية + أزرار تغيير/إزالة. يرجع {blob, removed} */
+export function avatarPicker(el, u = {}) {
+  let blob = null, removed = false, preview = u.photoURL || "";
+  const render = () => {
+    el.innerHTML = `
+      <div class="av-picker">
+        ${preview ? `<span class="av av-xl"><img src="${esc(preview)}" alt=""></span>` : `<span class="av av-xl av-empty">${icon("camera")}</span>`}
+        <div class="av-picker-actions">
+          <input type="file" accept="image/*" hidden data-av-in>
+          <button type="button" class="btn btn-outline btn-sm" data-av-pick>${icon("camera")} ${preview ? t("تغيير الصورة") : t("إضافة صورة")}</button>
+          ${preview ? `<button type="button" class="btn btn-ghost btn-sm" data-av-rm>${t("إزالة")}</button>` : ""}
+          <small class="muted">${t("صورة الشعار أو الملف الشخصي (اختياري)")}</small>
+        </div>
+      </div>`;
+    $("[data-av-pick]", el).onclick = () => $("[data-av-in]", el).click();
+    $("[data-av-in]", el).onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try {
+        blob = await resizeImage(f);
+        removed = false;
+        if (preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+        preview = URL.createObjectURL(blob);
+        render();
+      } catch (err) { toast(err.message, "error"); }
+    };
+    const rm = $("[data-av-rm]", el);
+    if (rm) rm.onclick = () => { blob = null; removed = true; preview = ""; render(); };
+  };
+  render();
+  return { get blob() { return blob; }, get removed() { return removed; } };
+}
+/** يحفظ تغيير الصورة لحساب ويرجع الحقول المطلوب تحديثها */
+export async function avatarChanges(uid, picker, current = {}) {
+  if (picker.blob) return uploadAvatar(uid, picker.blob, current.photoPath);
+  if (picker.removed && current.photoURL) {
+    if (current.photoPath) S.deleteObject(S.ref(storage, current.photoPath)).catch(() => {});
+    return { photoURL: F.deleteField(), photoPath: F.deleteField() };
+  }
+  return {};
+}
+
+/** نافذة "ملفي الشخصي": الصورة والاسم والهاتف */
+export async function editMyProfile(profile) {
+  let picker;
+  await modal({
+    title: t("ملفي الشخصي"), confirmText: t("حفظ"),
+    body: `
+      <div id="myAv"></div>
+      <label class="field"><span>${profile.role === "company" ? t("اسم الشركة") : t("اسم القسم / الفريق")}</span><input value="${esc(profile.orgName || "")}" disabled><small>${t("لتغيير الاسم تواصل مع قسم GIS.")}</small></label>
+      <div class="row2">
+        <label class="field"><span>${t("اسم المسؤول")}</span><input id="myName" value="${esc(profile.name || "")}"></label>
+        <label class="field"><span>${t("رقم الهاتف")}</span><input id="myPhone" type="tel" value="${esc(profile.phone || "")}"></label>
+      </div>
+      <label class="field"><span>${t("البريد الإلكتروني")}</span><input value="${esc(profile.email || "")}" disabled></label>`,
+    onOpen: bd => { picker = avatarPicker($("#myAv", bd), profile); },
+    onConfirm: async bd => {
+      const data = { name: $("#myName", bd).value.trim(), phone: $("#myPhone", bd).value.trim(), ...(await avatarChanges(profile.id, picker, profile)) };
+      await F.updateDoc(F.doc(db, "users", profile.id), data);
+      Object.assign(profile, data);
+      if (data.photoURL && typeof data.photoURL !== "string") { delete profile.photoURL; delete profile.photoPath; }
+      updateShellAvatar(profile);
+      toast(t("تم حفظ التعديلات"), "success");
+    }
+  });
+}
+function updateShellAvatar(profile) {
+  const b = $("#userBtn"); if (b) b.innerHTML = avatarHTML(profile);
+  const h = $("#umAvatar"); if (h) h.innerHTML = avatarHTML(profile, "av-lg");
+}
+
 /* ---------------- الشريط العلوي ---------------- */
 export function renderShell(profile, { title, subtitle = "", back = "" } = {}) {
-  const initials = (profile.orgName || profile.name || profile.email || "?").trim().slice(0, 1).toUpperCase();
   $("#topbar").innerHTML = `
     <div class="topbar-inner">
       <div class="tb-start">
@@ -321,9 +427,13 @@ export function renderShell(profile, { title, subtitle = "", back = "" } = {}) {
           <div class="dropdown bell-panel" id="bellPanel" hidden></div>
         </div>
         <div class="pop-wrap">
-          <button class="avatar" id="userBtn" aria-label="${t("الحساب")}">${esc(initials)}</button>
+          <button class="avatar" id="userBtn" aria-label="${t("الحساب")}">${avatarHTML(profile)}</button>
           <div class="dropdown user-menu" id="userMenu" hidden>
-            <div class="um-head"><strong>${esc(profile.orgName || profile.name || profile.email)}</strong>${profile.name ? `<small>${esc(profile.name)}</small>` : ""}<small>${esc(profile.email)}</small><span class="chip st-new">${esc(ROLES[profile.role] || profile.role)}</span></div>
+            <div class="um-head">
+              <span id="umAvatar">${avatarHTML(profile, "av-lg")}</span>
+              <strong>${esc(profile.orgName || profile.name || profile.email)}</strong>${profile.name ? `<small>${esc(profile.name)}</small>` : ""}<small>${esc(profile.email)}</small><span class="chip st-new">${esc(ROLES[profile.role] || profile.role)}</span>
+            </div>
+            <button class="um-item um-plain" id="profileBtn">${icon("users")} ${t("ملفي الشخصي")}</button>
             <button class="um-item" id="logoutBtn">${icon("logout")} ${t("تسجيل الخروج")}</button>
           </div>
         </div>
@@ -342,6 +452,7 @@ export function renderShell(profile, { title, subtitle = "", back = "" } = {}) {
   toggle("#userBtn", "#userMenu");
   document.addEventListener("click", e => { if (!e.target.closest(".dropdown")) $$(".dropdown").forEach(d => d.hidden = true); });
   $("#logoutBtn").addEventListener("click", logout);
+  $("#profileBtn").addEventListener("click", () => { $("#userMenu").hidden = true; editMyProfile(profile); });
   initBell(profile);
 }
 

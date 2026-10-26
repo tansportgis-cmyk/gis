@@ -40,12 +40,14 @@
         <div><h1 data-i18n="إرسال طلب جديد">إرسال طلب جديد</h1><p data-i18n="سيصل الطلب لقسم GIS للمراجعة">سيصل الطلب لقسم GIS للمراجعة</p></div>
       </div>
       <form class="card form-card" id="newForm" novalidate>
+        <div class="form-cols"><div class="form-col">
         <label class="field"><span><span data-i18n="نوع الطلب">نوع الطلب</span> <i class="req">*</i></span><select name="type" id="typeSelect" required></select></label>
         <label class="field"><span><span data-i18n="وصف الطلب">وصف الطلب</span> <i class="req">*</i></span><textarea name="description" rows="4" data-i18n-ph="مثال: رفع بيانات شبكة مياه جديدة في مخطط الحي الشمالي" placeholder="مثال: رفع بيانات شبكة مياه جديدة في مخطط الحي الشمالي" required></textarea></label>
 
         <div class="section-title" id="filesTitle"></div>
         <div id="picker"></div>
 
+        </div><div class="form-col">
         <div class="section-title" id="mapTitle"></div>
         <div class="map tall" id="pickMap"></div>
         <div class="map-tools">
@@ -55,6 +57,8 @@
             <button type="button" class="btn btn-outline btn-sm" id="myLoc"></button>
           </span>
         </div>
+
+        </div></div>
 
         <div class="form-actions">
           <button type="submit" class="btn btn-primary" id="submitBtn"></button>

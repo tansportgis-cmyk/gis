@@ -2,7 +2,7 @@
 import {
   db, F, $, $$, esc, icon, toast, errMsg, requireAuth, renderShell, hideBoot,
   requestCard, emptyState, byDateDesc, STATUS, ROLES, ROLE_KEYS, fmtDate, modal, askNote, notify,
-  DEFAULT_TYPES, t, markCurrentPageRead
+  DEFAULT_TYPES, t, markCurrentPageRead, avatarPicker, avatarChanges
 } from "./core.js";
 
 const { profile } = await requireAuth(["gis"]);
@@ -94,7 +94,7 @@ function renderUsers() {
     if (!self) actions.push(B("delete", u.id, "btn-outline-danger", "trash", t("حذف")));
     return `
       <div class="user-card">
-        <div class="user-av ${esc(u.role)}">${icon(roleIcon[u.role] || "users")}</div>
+        <div class="user-av ${esc(u.role)}">${u.photoURL ? `<img src="${esc(u.photoURL)}" alt="" loading="lazy">` : icon(roleIcon[u.role] || "users")}</div>
         <div class="user-info">
           <div class="top"><strong>${esc(u.orgName || u.name || u.email)}</strong><span class="chip ${st[1]}">${st[0]}</span>${self ? `<span class="chip st-new">${t("أنت")}</span>` : ""}</div>
           <small>${esc(ROLES[u.role] || u.role)}${u.name ? " · " + esc(u.name) : ""}</small>
@@ -149,9 +149,12 @@ $("#users").addEventListener("click", async e => {
     });
   } else if (act === "edit") {
     const self = u.id === profile.id;
+    let editAv;
     await modal({
       title: t("تعديل الحساب"), confirmText: t("حفظ"),
+      onOpen: bd => { editAv = avatarPicker($("#eAv", bd), u); },
       body: `
+        <div id="eAv"></div>
         <label class="field"><span>${u.role === "company" ? t("اسم الشركة") : t("اسم القسم / الفريق")} <i class="req">*</i></span><input id="eOrg" value="${esc(u.orgName || "")}"></label>
         <div class="row2">
           <label class="field"><span>${t("اسم المسؤول")}</span><input id="eName" value="${esc(u.name || "")}"></label>
@@ -162,7 +165,7 @@ $("#users").addEventListener("click", async e => {
       onConfirm: async bd => {
         const orgName = $("#eOrg", bd).value.trim();
         if (!orgName) { toast(t("أكمل الحقول المطلوبة"), "error"); return false; }
-        const data = { orgName, name: $("#eName", bd).value.trim(), phone: $("#ePhone", bd).value.trim() };
+        const data = { orgName, name: $("#eName", bd).value.trim(), phone: $("#ePhone", bd).value.trim(), ...(await avatarChanges(u.id, editAv, u)) };
         if (!self) {
           const role = $("#roleSel", bd).value;
           if (role !== u.role) {

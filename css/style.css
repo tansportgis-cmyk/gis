@@ -453,3 +453,62 @@ p { margin: 0; }
   .lang-btn { padding: 0 9px; }
   .step { font-size: 10.5px; }
 }
+
+/* ---------- الصورة الشخصية ---------- */
+.avatar { padding: 0; background: none; border-radius: 50%; }
+.av { width: 38px; height: 38px; border-radius: 50%; background: var(--primary-50); color: var(--primary); font-weight: 700; font-size: 16px; display: inline-grid; place-items: center; overflow: hidden; flex-shrink: 0; vertical-align: middle; }
+.av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.av-lg { width: 52px; height: 52px; font-size: 20px; margin-bottom: 6px; }
+.av-xl { width: 84px; height: 84px; font-size: 30px; box-shadow: 0 0 0 4px #fff, 0 0 0 5px var(--border); }
+.av-empty { background: var(--soft); color: var(--muted); border: 2px dashed #c9d5e6; box-shadow: none; }
+.av-empty .ic { width: 28px; height: 28px; }
+.av-picker { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.av-picker-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.av-picker-actions small { flex-basis: 100%; font-size: 12.5px; }
+.user-av { overflow: hidden; }
+.user-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.um-item.um-plain { color: var(--text); border-bottom: 1px solid var(--border); }
+
+/* ---------- استعادة كلمة المرور ---------- */
+.status-ic.ok { background: var(--success-50); color: var(--success); }
+.reset-steps { text-align: start; margin: 4px 0; padding-inline-start: 22px; color: var(--text-2); font-size: 14.5px; display: grid; gap: 4px; width: 100%; }
+.status-box h3 { font-size: 19px; }
+.small { font-size: 13px; }
+
+/* ---------- صفحة الدخول ---------- */
+.auth-layout { width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+.auth-cards { width: 100%; display: flex; justify-content: center; }
+.auth-points { display: none; list-style: none; padding: 0; margin: 18px 0 0; gap: 12px; }
+.auth-points li { display: flex; align-items: center; gap: 10px; font-size: 16px; color: var(--text-2); }
+.auth-points .ic { width: 22px; height: 22px; padding: 4px; border-radius: 50%; background: var(--success-50); color: var(--success); flex-shrink: 0; }
+
+/* ---------- شاشات الكمبيوتر ---------- */
+@media (min-width: 960px) {
+  .auth-wrap { justify-content: center; padding-top: 40px; }
+  .auth-layout { flex-direction: row; align-items: center; justify-content: center; gap: 64px; max-width: 1100px; margin: auto 0; }
+  .auth-hero { flex: 1; max-width: 460px; text-align: start; justify-items: start; margin: 0; }
+  .auth-hero h1 { font-size: 40px; }
+  .auth-hero p { font-size: 18px; }
+  .auth-logo { width: 84px; height: 84px; border-radius: 24px; }
+  .auth-points { display: grid; }
+  .auth-cards { width: 460px; flex-shrink: 0; }
+  .auth-card { max-width: 460px; padding: 28px; margin: 0; }
+  .auth-foot { padding: 28px 0 150px; }
+
+  .req-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .req-list > .empty { grid-column: 1 / -1; }
+  .map { height: 300px; }
+  .map.tall { height: 360px; }
+  .form-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  .form-actions { max-width: 420px; margin-inline-end: auto; }
+  .page-head h1 { font-size: 26px; }
+}
+@media (min-width: 1200px) {
+  .container, .topbar-inner { max-width: 1180px; }
+}
+@media (max-width: 380px) {
+  .container { padding-inline: 10px; }
+  .stat b { font-size: 22px; }
+  .tb-title strong { font-size: 15.5px; }
+}
+#resetForm > p { margin-bottom: 16px; }

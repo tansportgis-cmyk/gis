@@ -20,13 +20,21 @@
 
   <main class="auth-wrap" id="main" hidden>
     <div class="auth-lang" id="authLang"></div>
+    <div class="auth-layout">
     <section class="auth-hero">
       <div class="auth-logo">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
       </div>
       <h1 data-i18n="مرحباً بك">مرحباً بك</h1>
       <p data-i18n="في منصة طلبات الأعمال الميدانية و GIS">في منصة طلبات الأعمال الميدانية و GIS</p>
+      <ul class="auth-points">
+        <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="قدّم طلبك وارفق ملفاتك من أي مكان">قدّم طلبك وارفق ملفاتك من أي مكان</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="تابع حالة المعاملة خطوة بخطوة">تابع حالة المعاملة خطوة بخطوة</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="استلم النتائج النهائية إلكترونياً">استلم النتائج النهائية إلكترونياً</span></li>
+      </ul>
     </section>
+
+    <div class="auth-cards">
 
     <!-- تسجيل الدخول -->
     <section class="card auth-card" id="view-login" hidden>
@@ -52,6 +60,8 @@
           <label><input type="radio" name="role" value="company" checked><span class="seg-opt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg><span data-i18n="شركة">شركة</span></span></label>
           <label><input type="radio" name="role" value="maintenance"><span class="seg-opt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span data-i18n="قسم الصيانة">قسم الصيانة</span></span></label>
         </div>
+        <div class="field"><span data-i18n="الصورة الشخصية">الصورة الشخصية</span></div>
+        <div id="regAvatar"></div>
         <label class="field"><span><span id="orgLabel" data-i18n="اسم الشركة">اسم الشركة</span> <i class="req">*</i></span><input name="orgName" required></label>
         <div class="row2">
           <label class="field"><span><span data-i18n="اسم المسؤول">اسم المسؤول</span> <i class="req">*</i></span><input name="name" autocomplete="name" required></label>
@@ -68,6 +78,30 @@
       <button class="btn btn-ghost btn-block" data-go="login" data-i18n="تسجيل الدخول">تسجيل الدخول</button>
     </section>
 
+    <!-- نسيت كلمة المرور -->
+    <section class="card auth-card" id="view-reset" hidden>
+      <h2 data-i18n="استعادة كلمة المرور">استعادة كلمة المرور</h2>
+      <form id="resetForm" novalidate>
+        <p class="muted" data-i18n="اكتب بريدك المسجل وسنرسل لك رابطاً لتعيين كلمة مرور جديدة.">اكتب بريدك المسجل وسنرسل لك رابطاً لتعيين كلمة مرور جديدة.</p>
+        <label class="field"><span data-i18n="البريد الإلكتروني">البريد الإلكتروني</span><input type="email" name="email" autocomplete="email" required></label>
+        <button class="btn btn-primary btn-block" type="submit" data-i18n="إرسال رابط إعادة التعيين">إرسال رابط إعادة التعيين</button>
+      </form>
+      <div id="resetDone" class="status-box" hidden>
+        <div class="status-ic ok"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+        <h3 data-i18n="تحقق من بريدك">تحقق من بريدك</h3>
+        <p><span data-i18n="إذا كان هذا البريد مسجلاً، ستصلك رسالة على">إذا كان هذا البريد مسجلاً، ستصلك رسالة على</span> <b id="resetEmail" dir="ltr"></b></p>
+        <ol class="reset-steps">
+          <li data-i18n="افتح الرسالة واضغط على الرابط">افتح الرسالة واضغط على الرابط</li>
+          <li data-i18n="اكتب كلمة المرور الجديدة واحفظها">اكتب كلمة المرور الجديدة واحفظها</li>
+          <li data-i18n="ارجع هنا وسجّل الدخول بها">ارجع هنا وسجّل الدخول بها</li>
+        </ol>
+        <p class="muted small" data-i18n="لم تصلك الرسالة؟ تحقق من مجلد الرسائل غير المرغوب فيها (Spam).">لم تصلك الرسالة؟ تحقق من مجلد الرسائل غير المرغوب فيها (Spam).</p>
+        <button class="link-btn" id="resetAgain" type="button" data-i18n="إعادة الإرسال">إعادة الإرسال</button>
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn-ghost btn-block" id="resetBack" type="button" data-i18n="العودة لتسجيل الدخول">العودة لتسجيل الدخول</button>
+    </section>
+
     <!-- حالة الحساب -->
     <section class="card auth-card" id="view-status" hidden>
       <div class="status-box">
@@ -78,6 +112,9 @@
         <button class="btn btn-ghost btn-block" id="stLogout" data-i18n="تسجيل الخروج">تسجيل الخروج</button>
       </div>
     </section>
+
+    </div>
+    </div>
 
     <div class="auth-foot" data-i18n="منصة طلبات GIS">منصة طلبات GIS</div>
 

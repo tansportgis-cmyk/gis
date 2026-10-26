@@ -37,6 +37,17 @@ service firebase.storage {
               && req(rid).maintVisible == true && req(rid).status == 'maintenance');
     }
 
+    // الصورة الشخصية: avatars/{رقم المستخدم}/{الملف}
+    // صاحب الحساب يرفع صورته (حتى وهو قيد المراجعة)، و GIS يقدر يغيّرها
+    match /avatars/{uid}/{file} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && (request.auth.uid == uid || isRole('gis'))
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && (request.auth.uid == uid || isRole('gis'));
+    }
+
     match /{all=**} {
       allow read, write: if false;
     }

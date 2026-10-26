@@ -23,7 +23,7 @@ service cloud.firestore {
         && request.resource.data.role in ['company', 'maintenance']
         && request.resource.data.status == 'pending';
       allow update: if isGis()
-        || (signedIn() && request.auth.uid == uid && onlyChanged(['name', 'phone']));
+        || (signedIn() && request.auth.uid == uid && onlyChanged(['name', 'phone', 'photoURL', 'photoPath']));
       allow delete: if isGis();
     }
 
