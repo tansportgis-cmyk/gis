@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>لوحة GIS — منصة طلبات GIS</title>
+  <meta name="theme-color" content="#1d6fe0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="boot" class="boot"><div class="spinner"></div></div>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="container" id="main" hidden>
+    <nav class="navtabs" id="nav"></nav>
+
+    <!-- الطلبات -->
+    <section id="tab-requests">
+      <div class="stats" id="stats"></div>
+      <div class="search"><span id="searchIc"></span><input id="search" type="search" placeholder="ابحث برقم الطلب أو اسم الشركة أو الوصف"></div>
+      <div class="tabs" id="filters"></div>
+      <div class="req-list" id="list"></div>
+    </section>
+
+    <!-- الحسابات -->
+    <section id="tab-accounts" hidden>
+      <div class="tabs" id="userFilters"></div>
+      <div class="req-list" id="users"></div>
+    </section>
+
+    <!-- الإعدادات -->
+    <section id="tab-settings" hidden>
+      <div class="card card-pad section">
+        <div class="section-head"><h3>أنواع الطلبات</h3></div>
+        <p class="muted" style="font-size:14px;margin-bottom:12px">هذه الأنواع تظهر للشركات عند إرسال طلب جديد.</p>
+        <ul class="types-list" id="types"></ul>
+        <form class="add-row" id="addType">
+          <input class="input" name="t" placeholder="نوع جديد، مثال: أعمال مساحة" required>
+          <button class="btn btn-primary" type="submit">إضافة</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/gis.js"></script>
+</body>
+</html>

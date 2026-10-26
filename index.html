@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>منصة طلبات GIS</title>
+  <meta name="theme-color" content="#1d6fe0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-page">
+  <div id="boot" class="boot"><div class="spinner"></div></div>
+
+  <main class="auth-wrap" id="main" hidden>
+    <section class="auth-hero">
+      <div class="auth-logo">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+      </div>
+      <h1>مرحباً بك</h1>
+      <p>في منصة طلبات الأعمال الميدانية و GIS</p>
+    </section>
+
+    <!-- تسجيل الدخول -->
+    <section class="card auth-card" id="view-login" hidden>
+      <h2>تسجيل الدخول</h2>
+      <p class="muted">ادخل ببريدك وكلمة المرور</p>
+      <form id="loginForm" novalidate>
+        <label class="field"><span>البريد الإلكتروني</span><input type="email" name="email" autocomplete="email" required></label>
+        <label class="field"><span>كلمة المرور</span><input type="password" name="password" autocomplete="current-password" required></label>
+        <a href="#" class="forgot" id="forgotLink">نسيت كلمة المرور؟</a>
+        <button class="btn btn-primary btn-block" type="submit">دخول</button>
+      </form>
+      <div class="divider">ليس لديك حساب؟</div>
+      <button class="btn btn-outline btn-block" data-go="register">تسجيل حساب جديد</button>
+    </section>
+
+    <!-- التسجيل -->
+    <section class="card auth-card" id="view-register" hidden>
+      <h2>تسجيل حساب جديد</h2>
+      <p class="muted">سيتم مراجعة الحساب وتفعيله من قسم GIS</p>
+      <form id="registerForm" novalidate>
+        <div class="field"><span>نوع الحساب</span></div>
+        <div class="seg">
+          <label><input type="radio" name="role" value="company" checked><span class="seg-opt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg>شركة</span></label>
+          <label><input type="radio" name="role" value="maintenance"><span class="seg-opt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>قسم الصيانة</span></label>
+        </div>
+        <label class="field"><span id="orgLabel">اسم الشركة <i class="req">*</i></span><input name="orgName" required></label>
+        <div class="row2">
+          <label class="field"><span>اسم المسؤول <i class="req">*</i></span><input name="name" autocomplete="name" required></label>
+          <label class="field"><span>رقم الهاتف</span><input type="tel" name="phone" autocomplete="tel"></label>
+        </div>
+        <label class="field"><span>البريد الإلكتروني <i class="req">*</i></span><input type="email" name="email" autocomplete="email" required></label>
+        <div class="row2">
+          <label class="field"><span>كلمة المرور <i class="req">*</i></span><input type="password" name="password" autocomplete="new-password" minlength="6" required></label>
+          <label class="field"><span>تأكيد كلمة المرور <i class="req">*</i></span><input type="password" name="password2" autocomplete="new-password" required></label>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">إرسال طلب التسجيل</button>
+      </form>
+      <div class="divider">لديك حساب؟</div>
+      <button class="btn btn-ghost btn-block" data-go="login">تسجيل الدخول</button>
+    </section>
+
+    <!-- حالة الحساب -->
+    <section class="card auth-card" id="view-status" hidden>
+      <div class="status-box">
+        <div class="status-ic" id="stIcon"></div>
+        <h2 id="stTitle"></h2>
+        <p id="stText"></p>
+        <div id="stExtra"></div>
+        <button class="btn btn-ghost btn-block" id="stLogout">تسجيل الخروج</button>
+      </div>
+    </section>
+
+    <div class="auth-foot">منصة طلبات GIS</div>
+
+    <div class="skyline" aria-hidden="true">
+      <svg viewBox="0 0 1200 170" preserveAspectRatio="xMidYMax slice">
+        <g fill="#cfe0f8">
+          <rect x="20" y="70" width="70" height="100"/><rect x="100" y="40" width="55" height="130"/><rect x="165" y="90" width="80" height="80"/>
+          <rect x="255" y="55" width="60" height="115"/><rect x="330" y="100" width="90" height="70"/><rect x="430" y="30" width="50" height="140"/>
+          <rect x="490" y="80" width="75" height="90"/><rect x="580" y="60" width="60" height="110"/><rect x="655" y="95" width="85" height="75"/>
+          <rect x="750" y="45" width="55" height="125"/><rect x="815" y="85" width="70" height="85"/><rect x="895" y="25" width="50" height="145"/>
+          <rect x="955" y="75" width="80" height="95"/><rect x="1045" y="50" width="60" height="120"/><rect x="1115" y="90" width="80" height="80"/>
+        </g>
+        <g fill="#b9d1f3">
+          <rect x="60" y="110" width="60" height="60"/><rect x="210" y="120" width="70" height="50"/><rect x="380" y="115" width="60" height="55"/>
+          <rect x="520" y="125" width="80" height="45"/><rect x="700" y="112" width="60" height="58"/><rect x="860" y="122" width="70" height="48"/>
+          <rect x="1010" y="110" width="65" height="60"/>
+        </g>
+      </svg>
+    </div>
+  </main>
+
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>

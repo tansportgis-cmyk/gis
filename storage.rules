@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// ==========================================================
+//  قواعد أمان التخزين (الملفات) — انسخها في:
+//  Firebase Console ← Storage ← Rules ← Publish
+//  عند النشر سيطلب Firebase السماح للتخزين بقراءة Firestore — اضغط Allow / Grant
+// ==========================================================
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function me() { return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data; }
+    function approved() { return request.auth != null && me().status == 'approved'; }
+    function isRole(r) { return approved() && me().role == r; }
+    function req(rid) { return firestore.get(/databases/(default)/documents/requests/$(rid)).data; }
+    function smallEnough() { return request.resource.size < 50 * 1024 * 1024; }
+
+    // المسار: requests/{رقم الطلب}/{القسم}/{الملف}
+    // الأقسام: company (ملفات الشركة) · gis (خرائط GIS) · maint (الصيانة) · final (نهائية للشركة)
+    match /requests/{rid}/{section}/{file} {
+
+      allow read: if isRole('gis')
+        || (isRole('company') && req(rid).companyId == request.auth.uid
+            && (section in ['company', 'final']
+                || ('requests/' + rid + '/' + section + '/' + file) in req(rid).sharedPaths))
+        || (isRole('maintenance') && req(rid).maintVisible == true && section in ['gis', 'maint']);
+
+      allow create: if smallEnough() && (
+           (section == 'company' && isRole('company')
+              && req(rid).companyId == request.auth.uid
+              && req(rid).status in ['new', 'needs_info'])
+        || (section in ['gis', 'final'] && isRole('gis'))
+        || (section == 'maint' && isRole('maintenance')
+              && req(rid).maintVisible == true && req(rid).status == 'maintenance'));
+
+      allow delete: if isRole('gis')
+        || (section == 'maint' && isRole('maintenance')
+              && req(rid).maintVisible == true && req(rid).status == 'maintenance');
+    }
+
+    match /{all=**} {
+      allow read, write: if false;
+    }
+  }
+}

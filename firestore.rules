@@ -1,0 +1,86 @@
+rules_version = '2';
+
+// ==========================================================
+//  قواعد أمان Firestore — انسخها في:
+//  Firebase Console ← Firestore Database ← Rules ← Publish
+// ==========================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function me() { return get(userPath()).data; }
+    function approved() { return signedIn() && exists(userPath()) && me().status == 'approved'; }
+    function isRole(r) { return approved() && me().role == r; }
+    function isGis() { return isRole('gis'); }
+    function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    // ---------- المستخدمون ----------
+    match /users/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || isGis();
+      // التسجيل: لا يمكن لأحد أن يسجّل نفسه كـ GIS أو يفعّل حسابه بنفسه
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role in ['company', 'maintenance']
+        && request.resource.data.status == 'pending';
+      allow update: if isGis()
+        || (signedIn() && request.auth.uid == uid && onlyChanged(['name', 'phone']));
+      allow delete: if isGis();
+    }
+
+    // ---------- الطلبات ----------
+    match /requests/{rid} {
+      allow read: if isGis()
+        || (isRole('company') && resource.data.companyId == request.auth.uid)
+        || (isRole('maintenance') && resource.data.maintVisible == true);
+
+      allow create: if isRole('company')
+        && request.resource.data.companyId == request.auth.uid
+        && request.resource.data.status == 'new'
+        && request.resource.data.maintVisible == false;
+
+      allow update: if isGis()
+        // الشركة: تعدّل طلبها فقط وهو جديد أو مطلوب استكماله، ولا تغيّر إلا هذه الحقول
+        || (isRole('company')
+            && resource.data.companyId == request.auth.uid
+            && resource.data.status in ['new', 'needs_info']
+            && request.resource.data.status == 'new'
+            && onlyChanged(['type', 'description', 'location', 'companyFiles', 'status', 'history', 'updatedAt']))
+        // الصيانة: تعمل فقط على الطلبات المحوّلة لها وهي عند الصيانة
+        || (isRole('maintenance')
+            && resource.data.maintVisible == true
+            && resource.data.status == 'maintenance'
+            && request.resource.data.status in ['maintenance', 'gis_review']
+            && onlyChanged(['maintFiles', 'maintNotes', 'status', 'history', 'updatedAt']));
+
+      allow delete: if isGis();
+    }
+
+    // ---------- العدّاد (رقم الطلب التسلسلي) ----------
+    match /counters/{cid} {
+      allow read: if approved();
+      allow create: if isRole('company') && request.resource.data.last == 1001;
+      allow update: if isRole('company') && request.resource.data.last == resource.data.last + 1;
+    }
+
+    // ---------- الإعدادات ----------
+    match /settings/{sid} {
+      allow read: if signedIn();
+      allow write: if isGis();
+    }
+
+    // ---------- الإشعارات ----------
+    match /notifications/{nid} {
+      function canSee(d) {
+        return signedIn() && (d.toUid == request.auth.uid || (approved() && d.toRole == me().role));
+      }
+      allow read: if canSee(resource.data);
+      // المستخدم الجديد (قيد المراجعة) يقدر يرسل إشعار لـ GIS فقط
+      allow create: if signedIn()
+        && request.resource.data.from == request.auth.uid
+        && (approved() || (request.resource.data.toRole == 'gis' && request.resource.data.toUid == null));
+      // تحديد كمقروء فقط
+      allow update: if canSee(resource.data) && onlyChanged(['readBy']);
+      allow delete: if isGis();
+    }
+  }
+}
