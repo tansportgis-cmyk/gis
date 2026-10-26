@@ -1,6 +1,6 @@
 // Service Worker — يسمح بتثبيت التطبيق على الجوال ويعرض الإشعارات
 // عند تعديل ملفات التطبيق غيّر رقم الإصدار حتى يتحدث عند المستخدمين
-const CACHE = "gis-app-v2";
+const CACHE = "gis-app-v3";
 const SHELL = [
   "./", "index.html", "company.html", "gis.html", "maintenance.html", "request.html",
   "css/style.css", "js/core.js", "js/firebase-config.js",

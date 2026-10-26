@@ -37,6 +37,14 @@ function showStatus(p) {
     ic.className = "status-ic bad"; ic.innerHTML = icon("ban");
     $("#stTitle").textContent = "الحساب موقوف";
     $("#stText").textContent = "تم إيقاف هذا الحساب. تواصل مع قسم GIS.";
+  } else {
+    // قيم غير متوقعة (غالباً خطأ كتابة عند التعديل اليدوي في Firestore)
+    ic.className = "status-ic bad"; ic.innerHTML = icon("alert");
+    $("#stTitle").textContent = "بيانات الحساب غير صحيحة";
+    $("#stText").textContent = "القيم المحفوظة لهذا الحساب في Firestore غير معروفة. صحّحها بحروف صغيرة وبدون مسافات أو علامات تنصيص.";
+    $("#stExtra").innerHTML = `<div class="alert warn" style="text-align:right">${icon("alert")}<div>
+      <p>role الحالي: <b dir="ltr">${esc(JSON.stringify(p.role))}</b> ← المطلوب: <b dir="ltr">gis</b> أو <b dir="ltr">company</b> أو <b dir="ltr">maintenance</b></p>
+      <p>status الحالي: <b dir="ltr">${esc(JSON.stringify(p.status))}</b> ← المطلوب: <b dir="ltr">approved</b></p></div></div>`;
   }
   show("status");
 }
@@ -50,7 +58,7 @@ A.onAuthStateChanged(auth, user => {
       showStatus(null); hideBoot(); return;
     }
     const p = snap.data();
-    if (p.status === "approved") { location.replace(homeFor(p.role)); return; }
+    if (p.status === "approved" && ["gis", "company", "maintenance"].includes(p.role)) { location.replace(homeFor(p.role)); return; }
     showStatus(p); hideBoot();
   }, e => { toast(errMsg(e), "error"); show("login"); hideBoot(); });
 });
