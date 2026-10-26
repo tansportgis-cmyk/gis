@@ -17,12 +17,14 @@ const LOC_HINT = t("اضغط على الخريطة لتحديد الموقع (ا
 $("#locText").textContent = LOC_HINT;
 
 /* ---------- القائمة ---------- */
+// الطلبات المؤرشفة تظهر فقط في تصنيف «الأرشيف»
 const GROUPS = {
-  all:      { label: t("الكل"),          match: () => true },
-  active:   { label: t("قيد المعالجة"),  match: r => ["new", "gis_work", "maintenance", "gis_review"].includes(r.status) },
-  needs:    { label: t("مطلوب استكمال"), match: r => r.status === "needs_info" },
-  done:     { label: t("مكتملة"),        match: r => r.status === "approved" },
-  rejected: { label: t("مرفوضة"),        match: r => r.status === "rejected" }
+  all:      { label: t("الكل"),          match: r => !r.archived },
+  active:   { label: t("قيد المعالجة"),  match: r => !r.archived && ["new", "gis_work", "maintenance", "gis_review"].includes(r.status) },
+  needs:    { label: t("مطلوب استكمال"), match: r => !r.archived && r.status === "needs_info" },
+  done:     { label: t("مكتملة"),        match: r => !r.archived && r.status === "approved" },
+  rejected: { label: t("مرفوضة"),        match: r => !r.archived && r.status === "rejected" },
+  archived: { label: t("الأرشيف"),       match: r => !!r.archived }
 };
 let filter = "all";
 let requests = [];
@@ -33,7 +35,7 @@ function render() {
     <button class="stat blue" data-f="active"><b>${count("active")}</b><span>${t("قيد المعالجة")}</span></button>
     <button class="stat orange" data-f="needs"><b>${count("needs")}</b><span>${t("مطلوب استكمال")}</span></button>
     <button class="stat green" data-f="done"><b>${count("done")}</b><span>${t("مكتملة")}</span></button>
-    <button class="stat purple" data-f="all"><b>${requests.length}</b><span>${t("كل الطلبات")}</span></button>`;
+    <button class="stat purple" data-f="all"><b>${count("all")}</b><span>${t("كل الطلبات")}</span></button>`;
   $("#tabs").innerHTML = Object.entries(GROUPS).map(([k, g]) =>
     `<button class="tab ${k === filter ? "active" : ""}" data-f="${k}">${g.label} <span class="n">${count(k)}</span></button>`).join("");
   const list = requests.filter(GROUPS[filter].match);

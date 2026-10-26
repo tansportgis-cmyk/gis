@@ -60,8 +60,35 @@ export const HISTORY_LABELS = {
   rejected:       "تم رفض الطلب",
   reopened:       "أعاد GIS فتح الطلب",
   files_gis:      "رفع GIS ملفات",
-  files_maint:    "رفعت الصيانة ملفات"
+  files_maint:    "رفعت الصيانة ملفات",
+  files_company:  "رفعت الشركة ملفات",
+  file_deleted:   "تم حذف ملف",
+  archived:       "تمت أرشفة الطلب",
+  unarchived:     "تم إخراج الطلب من الأرشيف"
 };
+// أحداث الحسابات والإعدادات في سجل النشاط ({target} = اسم الحساب أو العدد)
+export const ACTIVITY_LABELS = {
+  user_registered: "سجّل حساباً جديداً",
+  user_approved:   "قبول حساب {target}",
+  user_rejected:   "رفض حساب {target}",
+  user_edited:     "تعديل بيانات {target}",
+  user_role:       "تغيير صلاحية {target}",
+  user_deleted:    "حذف حساب {target}",
+  user_disabled:   "إيقاف حساب {target}",
+  user_enabled:    "تفعيل حساب {target}",
+  types_changed:   "تعديل أنواع الطلبات",
+  bulk_archive:    "أرشفة {target} طلب"
+};
+/** يسجّل حدث في سجل النشاط العام (لـ GIS فقط) */
+export async function logActivity(p, action, { targetId = "", targetName = "", note = "", kind = "account" } = {}) {
+  try {
+    await F.addDoc(F.collection(db, "activity"), {
+      action, kind, targetId, targetName: String(targetName), note,
+      by: p.id, byName: p.orgName || p.name || p.email || "", role: p.role,
+      at: F.serverTimestamp()
+    });
+  } catch (e) { console.warn("activity log failed", e); }
+}
 // الأحداث التي تظهر للشركة في السجل
 export const COMPANY_VISIBLE_HISTORY = ["created", "resubmitted", "edited", "needs_info", "accepted", "approved", "rejected"];
 
@@ -781,7 +808,7 @@ export function requestCard(r, { showCompany = true, forCompany = false } = {}) 
     <a class="req-card" href="request.html?id=${encodeURIComponent(r.id)}">
       <div class="req-icon">${icon(r.location ? "pin" : "file")}</div>
       <div class="req-body">
-        <div class="req-top"><strong>${t("طلب #{n}", { n: r.number })}</strong>${chip(r.status, forCompany)}</div>
+        <div class="req-top"><strong>${t("طلب #{n}", { n: r.number })}</strong><span class="chips">${r.archived ? `<span class="chip st-muted">${t("مؤرشف")}</span>` : ""}${chip(r.status, forCompany)}</span></div>
         <div class="req-type">${esc(t(r.type || ""))}</div>
         <p class="req-desc">${esc(r.description)}</p>
         <div class="req-meta">

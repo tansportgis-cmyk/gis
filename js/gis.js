@@ -2,7 +2,8 @@
 import {
   db, F, $, $$, esc, icon, toast, errMsg, requireAuth, renderShell, hideBoot,
   requestCard, emptyState, byDateDesc, STATUS, ROLES, ROLE_KEYS, fmtDate, modal, askNote, notify,
-  DEFAULT_TYPES, t, markCurrentPageRead, avatarPicker, avatarChanges
+  DEFAULT_TYPES, t, markCurrentPageRead, avatarPicker, avatarChanges,
+  toDate, fmtDateTime, HISTORY_LABELS, ACTIVITY_LABELS, logActivity
 } from "./core.js";
 
 const { profile } = await requireAuth(["gis"]);
@@ -10,13 +11,13 @@ renderShell(profile, { title: t("لوحة GIS"), subtitle: profile.orgName });
 $("#searchIc").outerHTML = icon("search");
 
 /* ---------- التنقل ---------- */
-const TABS = { requests: [t("الطلبات"), "inbox"], accounts: [t("الحسابات"), "users"], settings: [t("الإعدادات"), "settings"] };
+const TABS = { requests: [t("الطلبات"), "inbox"], accounts: [t("الحسابات"), "users"], activity: [t("السجل"), "clock"], settings: [t("الإعدادات"), "settings"] };
 let tab = (location.hash.slice(1) in TABS) ? location.hash.slice(1) : "requests";
-let requests = [], users = [];
+let requests = [], users = [], activity = [];
 
 function renderNav() {
   const pendingUsers = users.filter(u => u.status === "pending").length;
-  const actionReqs = requests.filter(r => ["new", "gis_review"].includes(r.status)).length;
+  const actionReqs = requests.filter(r => !r.archived && ["new", "gis_review"].includes(r.status)).length;
   const badge = { requests: actionReqs, accounts: pendingUsers };
   $("#nav").innerHTML = Object.entries(TABS).map(([k, [label, ic]]) =>
     `<button class="navtab ${k === tab ? "active" : ""}" data-tab="${k}">${icon(ic)} ${label}${badge[k] ? ` <span class="n">${badge[k]}</span>` : ""}</button>`).join("");
@@ -29,10 +30,12 @@ function showTab() {
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h in TABS) { tab = h; showTab(); } });
 
 /* ---------- الطلبات ---------- */
+// الطلبات المؤرشفة لا تظهر إلا في تصنيف «الأرشيف»
 const FILTERS = {
-  action:      { label: t("بحاجة لإجرائك"), match: r => ["new", "gis_review"].includes(r.status) },
-  all:         { label: t("الكل"), match: () => true },
-  ...Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, { label: v.label, match: r => r.status === k }]))
+  action:      { label: t("بحاجة لإجرائك"), match: r => !r.archived && ["new", "gis_review"].includes(r.status) },
+  all:         { label: t("الكل"), match: r => !r.archived },
+  ...Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, { label: v.label, match: r => !r.archived && r.status === k }])),
+  archived:    { label: t("الأرشيف"), match: r => !!r.archived }
 };
 let filter = "action", query = "";
 
@@ -60,6 +63,8 @@ $("#search").addEventListener("input", e => { query = e.target.value; renderRequ
 F.onSnapshot(F.query(F.collection(db, "requests"), F.orderBy("createdAt", "desc")), snap => {
   requests = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(byDateDesc);
   renderRequests();
+  renderActivity();
+  archHint();
   hideBoot();
 }, e => { toast(errMsg(e), "error"); hideBoot(); });
 
@@ -139,13 +144,14 @@ $("#users").addEventListener("click", async e => {
         const role = $("#roleSel", bd).value;
         await F.updateDoc(uref, { status: "approved", role, approvedAt: F.serverTimestamp(), approvedBy: profile.id, rejectReason: F.deleteField() });
         await notify({ toUid: u.id, title: "تم تفعيل حسابك", body: "مرحباً بك في المنصة كـ {role}", bp: { role: ROLE_KEYS[role] }, link: "index.html" });
+        await logActivity(profile, "user_approved", { targetId: u.id, targetName: label, note: ROLE_KEYS[role] });
         toast(t("تم تفعيل الحساب"), "success");
       }
     });
   } else if (act === "reject") {
     await askNote({
       title: t("رفض {name}", { name: label }), label: t("سبب الرفض (سيظهر لصاحب الحساب)"), danger: true, confirmText: t("رفض"),
-      onConfirm: async note => { await F.updateDoc(uref, { status: "rejected", rejectReason: note }); toast(t("تم رفض الحساب"), "success"); }
+      onConfirm: async note => { await F.updateDoc(uref, { status: "rejected", rejectReason: note }); await logActivity(profile, "user_rejected", { targetId: u.id, targetName: label, note }); toast(t("تم رفض الحساب"), "success"); }
     });
   } else if (act === "edit") {
     const self = u.id === profile.id;
@@ -175,6 +181,7 @@ $("#users").addEventListener("click", async e => {
         }
         await F.updateDoc(uref, data);
         if ((data.role || u.role) === "company" && orgName !== u.orgName) await syncCompanyName(u.id, orgName);
+        await logActivity(profile, data.role ? "user_role" : "user_edited", { targetId: u.id, targetName: orgName, note: data.role ? ROLE_KEYS[data.role] : "" });
         toast(t("تم حفظ التعديلات"), "success");
       }
     });
@@ -187,6 +194,7 @@ $("#users").addEventListener("click", async e => {
         <p class="muted" style="font-size:13px;margin-top:10px">${t("لحذف بيانات الدخول نهائياً: Firebase Console ← Authentication ← Users.")}</p>`,
       onConfirm: async () => {
         await F.deleteDoc(uref);
+        await logActivity(profile, "user_deleted", { targetId: u.id, targetName: label, note: u.email || "" });
         toast(t("تم حذف الحساب"), "success");
       }
     });
@@ -194,16 +202,21 @@ $("#users").addEventListener("click", async e => {
     await modal({
       title: t("إيقاف الحساب"), danger: true, confirmText: t("إيقاف"),
       body: `<p>${t("لن يتمكن <b>{name}</b> من الدخول للتطبيق حتى تعيد تفعيله.", { name: esc(label) })}</p>`,
-      onConfirm: async () => { await F.updateDoc(uref, { status: "disabled" }); toast(t("تم إيقاف الحساب"), "success"); }
+      onConfirm: async () => { await F.updateDoc(uref, { status: "disabled" }); await logActivity(profile, "user_disabled", { targetId: u.id, targetName: label }); toast(t("تم إيقاف الحساب"), "success"); }
     });
   } else if (act === "enable") {
-    await F.updateDoc(uref, { status: "approved", rejectReason: F.deleteField() }).then(() => toast(t("تم تفعيل الحساب"), "success")).catch(err => toast(errMsg(err), "error"));
+    try {
+      await F.updateDoc(uref, { status: "approved", rejectReason: F.deleteField() });
+      await logActivity(profile, "user_enabled", { targetId: u.id, targetName: label });
+      toast(t("تم تفعيل الحساب"), "success");
+    } catch (err) { toast(errMsg(err), "error"); }
   }
 });
 
 F.onSnapshot(F.collection(db, "users"), snap => {
   users = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(byDateDesc);
   renderUsers();
+  renderActivity();
 }, e => toast(errMsg(e), "error"));
 
 /* ---------- الإعدادات ---------- */
@@ -214,7 +227,7 @@ function renderTypes() {
     || `<li class="muted">${t("لا توجد أنواع")}</li>`;
 }
 async function saveTypes() {
-  try { await F.setDoc(settingsRef, { requestTypes: types }, { merge: true }); toast(t("تم الحفظ"), "success"); }
+  try { await F.setDoc(settingsRef, { requestTypes: types }, { merge: true }); await logActivity(profile, "types_changed", { kind: "settings", note: types.join("، ") }); toast(t("تم الحفظ"), "success"); }
   catch (e) { toast(errMsg(e), "error"); }
 }
 $("#types").addEventListener("click", e => {
@@ -231,5 +244,116 @@ F.onSnapshot(settingsRef, s => {
   types = s.exists() && s.data().requestTypes ? [...s.data().requestTypes] : [...DEFAULT_TYPES];
   renderTypes();
 }, () => { types = [...DEFAULT_TYPES]; renderTypes(); });
+
+/* ---------- سجل النشاط ---------- */
+$("#actSearchIc").outerHTML = icon("search");
+$("#actExport").innerHTML = `${icon("download")} ${t("تصدير Excel")}`;
+const AFILTERS = { all: t("الكل"), request: t("الطلبات"), account: t("الحسابات والإعدادات") };
+let afilter = "all", aquery = "", aperiod = 30, alimit = 80;
+const roleClass = { company: "company", maintenance: "maintenance", gis: "gis" };
+
+// يجمع: سجل كل طلب + تسجيلات الحسابات + أحداث GIS على الحسابات والإعدادات
+function activityItems() {
+  const items = [];
+  for (const r of requests) for (const h of (r.history || [])) {
+    items.push({ kind: "request", action: h.action, label: t(HISTORY_LABELS[h.action] || h.action), note: h.note || "", byName: h.byName, role: h.role, at: h.at, reqId: r.id, reqNo: r.number });
+  }
+  for (const u of users) if (u.createdAt) {
+    items.push({ kind: "account", action: "user_registered", label: t(ACTIVITY_LABELS.user_registered), note: ROLES[u.role] || "", byName: u.orgName || u.name || u.email, role: u.role, at: u.createdAt });
+  }
+  for (const a of activity) {
+    items.push({ kind: a.kind === "request" ? "request" : "account", action: a.action, label: t(ACTIVITY_LABELS[a.action] || a.action, { target: a.targetName }), note: a.note ? t(a.note) : "", byName: a.byName, role: a.role, at: a.at });
+  }
+  return items.map(i => ({ ...i, time: toDate(i.at)?.getTime() || Date.now() })).sort((a, b) => b.time - a.time);
+}
+function filteredActivity() {
+  const from = aperiod ? Date.now() - aperiod * 86400000 : 0;
+  const q = aquery.trim().toLowerCase().replace(/^#/, "");
+  return activityItems().filter(i =>
+    i.time >= from &&
+    (afilter === "all" || i.kind === afilter) &&
+    (!q || [i.byName, i.label, i.note, i.reqNo].some(v => String(v ?? "").toLowerCase().includes(q))));
+}
+function renderActivity() {
+  if (!$("#actList")) return;
+  const all = filteredActivity();
+  const count = k => all.length && k === "all" ? all.length : all.filter(i => i.kind === k).length;
+  $("#actFilters").innerHTML = Object.entries(AFILTERS).map(([k, l]) =>
+    `<button class="tab ${k === afilter ? "active" : ""}" data-af="${k}">${l}</button>`).join("");
+  $$("[data-af]").forEach(b => b.onclick = () => { afilter = b.dataset.af; alimit = 80; renderActivity(); });
+  const list = all.slice(0, alimit);
+  let lastDay = "";
+  $("#actList").innerHTML = list.length ? list.map(i => {
+    const day = fmtDate(i.at);
+    const head = day !== lastDay ? `<li class="act-day">${esc(day)}</li>` : "";
+    lastDay = day;
+    return head + `
+      <li class="act-item">
+        <span class="act-dot ${roleClass[i.role] || ""}">${icon(i.kind === "request" ? "file" : "users")}</span>
+        <div class="act-body">
+          <div class="act-line"><strong>${esc(i.label)}</strong>${i.reqId ? ` <a href="request.html?id=${encodeURIComponent(i.reqId)}">${esc(t("طلب #{n}", { n: i.reqNo }))}</a>` : ""}</div>
+          <small><bdi>${esc(i.byName || "")}</bdi>${i.role ? ` · ${esc(ROLES[i.role] || i.role)}` : ""} · <bdi>${esc(fmtDateTime(i.at).split(/,|،/).pop().trim())}</bdi></small>
+          ${i.note ? `<p>${esc(i.note)}</p>` : ""}
+        </div>
+      </li>`;
+  }).join("") : `<li>${emptyState(t("لا يوجد نشاط في هذه الفترة"))}</li>`;
+  $("#actMore").hidden = all.length <= alimit;
+}
+$("#actSearch").addEventListener("input", e => { aquery = e.target.value; alimit = 80; renderActivity(); });
+$("#actPeriod").addEventListener("change", e => { aperiod = +e.target.value; alimit = 80; renderActivity(); });
+$("#actMore").addEventListener("click", () => { alimit += 80; renderActivity(); });
+$("#actExport").addEventListener("click", () => {
+  const rows = filteredActivity();
+  if (!rows.length) { toast(t("لا يوجد نشاط في هذه الفترة"), "info"); return; }
+  const cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const head = [t("التاريخ والوقت"), t("الحدث"), t("رقم الطلب"), t("بواسطة"), t("الصلاحية"), t("ملاحظة")];
+  const csv = [head, ...rows.map(i => [fmtDateTime(i.at), i.label, i.reqNo || "", i.byName || "", ROLES[i.role] || "", i.note])]
+    .map(r => r.map(cell).join(",")).join("\r\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `activity-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+F.onSnapshot(F.collection(db, "activity"), snap => {
+  activity = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderActivity();
+}, e => console.warn("activity", e));
+
+/* ---------- الأرشفة الجماعية ---------- */
+const closedSince = days => {
+  const limit = Date.now() - days * 86400000;
+  return requests.filter(r => !r.archived && ["approved", "rejected"].includes(r.status) &&
+    (toDate(r.updatedAt || r.createdAt)?.getTime() || 0) <= limit);
+};
+function archHint() {
+  const days = Math.max(0, +$("#archDays").value || 0);
+  const n = closedSince(days).length;
+  $("#archHint").textContent = t("سيتم أرشفة {n} طلب.", { n });
+  $("#archBtn").disabled = !n;
+}
+$("#archDays").addEventListener("input", archHint);
+$("#archBtn").addEventListener("click", () => {
+  const days = Math.max(0, +$("#archDays").value || 0);
+  const list = closedSince(days);
+  if (!list.length) return;
+  modal({
+    title: t("أرشفة الطلبات"), confirmText: t("أرشفة"),
+    body: `<p>${t("سيتم نقل {n} طلب مغلق إلى الأرشيف. تبقى كل بياناتها وملفاتها، ويمكن إخراجها من الأرشيف في أي وقت.", { n: list.length })}</p>`,
+    onConfirm: async () => {
+      for (let i = 0; i < list.length; i += 400) {
+        const batch = F.writeBatch(db);
+        list.slice(i, i + 400).forEach(r => batch.update(F.doc(db, "requests", r.id), {
+          archived: true, archivedAt: F.serverTimestamp(),
+          history: F.arrayUnion({ action: "archived", note: "", by: profile.id, byName: profile.orgName || profile.name || profile.email || "", role: "gis", at: F.Timestamp.now() })
+        }));
+        await batch.commit();
+      }
+      await logActivity(profile, "bulk_archive", { kind: "request", targetName: list.length });
+      toast(t("تمت أرشفة {n} طلب", { n: list.length }), "success");
+    }
+  });
+});
 
 showTab();

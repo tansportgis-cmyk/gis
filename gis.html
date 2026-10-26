@@ -35,6 +35,23 @@
       <div class="req-list" id="users"></div>
     </section>
 
+    <!-- سجل النشاط -->
+    <section id="tab-activity" hidden>
+      <div class="act-tools">
+        <div class="search"><span id="actSearchIc"></span><input id="actSearch" type="search" data-i18n-ph="ابحث بالاسم أو رقم الطلب أو الملاحظة" placeholder="ابحث بالاسم أو رقم الطلب أو الملاحظة"></div>
+        <select class="input act-period" id="actPeriod">
+          <option value="7" data-i18n="آخر 7 أيام">آخر 7 أيام</option>
+          <option value="30" selected data-i18n="آخر 30 يوم">آخر 30 يوم</option>
+          <option value="90" data-i18n="آخر 3 أشهر">آخر 3 أشهر</option>
+          <option value="0" data-i18n="كل الفترات">كل الفترات</option>
+        </select>
+        <button class="btn btn-ghost" id="actExport" type="button"></button>
+      </div>
+      <div class="tabs" id="actFilters"></div>
+      <div class="card act-card"><ul class="act-list" id="actList"></ul></div>
+      <div class="act-more"><button class="btn btn-ghost" id="actMore" hidden data-i18n="عرض المزيد">عرض المزيد</button></div>
+    </section>
+
     <!-- الإعدادات -->
     <section id="tab-settings" hidden>
       <div class="card card-pad section">
@@ -45,6 +62,17 @@
           <input class="input" name="t" data-i18n-ph="نوع جديد، مثال: أعمال مساحة" placeholder="نوع جديد، مثال: أعمال مساحة" required>
           <button class="btn btn-primary" type="submit" data-i18n="إضافة">إضافة</button>
         </form>
+      </div>
+      <div class="card card-pad section">
+        <div class="section-head"><h3 data-i18n="أرشفة الطلبات">أرشفة الطلبات</h3></div>
+        <p class="muted" style="font-size:14px;margin-bottom:12px" data-i18n="الطلبات المكتملة والمرفوضة تنتقل للأرشيف فتبقى القوائم خفيفة، ويمكن الرجوع لها في أي وقت من تصنيف «الأرشيف».">الطلبات المكتملة والمرفوضة تنتقل للأرشيف فتبقى القوائم خفيفة، ويمكن الرجوع لها في أي وقت من تصنيف «الأرشيف».</p>
+        <div class="archive-row">
+          <span data-i18n="أرشفة الطلبات المغلقة منذ أكثر من">أرشفة الطلبات المغلقة منذ أكثر من</span>
+          <input class="input" type="number" id="archDays" value="30" min="0" max="3650">
+          <span data-i18n="يوم">يوم</span>
+          <button class="btn btn-primary" id="archBtn" type="button" data-i18n="أرشفة">أرشفة</button>
+        </div>
+        <small class="muted" id="archHint"></small>
       </div>
     </section>
   </main>

@@ -62,6 +62,12 @@ service cloud.firestore {
       allow update: if isRole('company') && request.resource.data.last == resource.data.last + 1;
     }
 
+    // ---------- سجل النشاط (لـ GIS فقط، ولا يمكن تعديله أو حذفه) ----------
+    match /activity/{aid} {
+      allow read, create: if isGis();
+      allow update, delete: if false;
+    }
+
     // ---------- الإعدادات ----------
     match /settings/{sid} {
       allow read: if signedIn();
