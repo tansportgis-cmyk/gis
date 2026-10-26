@@ -11,7 +11,8 @@ export { A, F, S, APP };
 
 export const app = initializeApp(firebaseConfig);
 export const auth = A.getAuth(app);
-export const db = F.getFirestore(app);
+// تجاهل أي حقل قيمته undefined بدل ما يسبب خطأ
+export const db = F.initializeFirestore(app, { ignoreUndefinedProperties: true });
 export const storage = S.getStorage(app);
 
 if ("serviceWorker" in navigator) {
@@ -410,7 +411,7 @@ function initBell(profile) {
 /* ---------------- السجل ---------------- */
 export const hist = (p, action, note = "") => ({
   action, note,
-  by: p.id, byName: p.orgName || p.name, role: p.role,
+  by: p.id, byName: p.orgName || p.name || p.email || "", role: p.role,
   at: F.Timestamp.now()
 });
 
@@ -443,7 +444,7 @@ export async function uploadFiles(rid, section, files, profile, label) {
       done += f.size;
       out.push({
         name: f.name, path, size: f.size, type: f.type || "",
-        uploadedAt: F.Timestamp.now(), by: profile.id, byName: profile.orgName || profile.name
+        uploadedAt: F.Timestamp.now(), by: profile.id, byName: profile.orgName || profile.name || profile.email || ""
       });
     }
   } finally { bar.done(); }
