@@ -64,7 +64,8 @@ export const HISTORY_LABELS = {
   files_company:  "رفعت الشركة ملفات",
   file_deleted:   "تم حذف ملف",
   archived:       "تمت أرشفة الطلب",
-  unarchived:     "تم إخراج الطلب من الأرشيف"
+  unarchived:     "تم إخراج الطلب من الأرشيف",
+  team_changed:   "تم تغيير فريق الصيانة"
 };
 // أحداث الحسابات والإعدادات في سجل النشاط ({target} = اسم الحساب أو العدد)
 export const ACTIVITY_LABELS = {
@@ -77,7 +78,8 @@ export const ACTIVITY_LABELS = {
   user_disabled:   "إيقاف حساب {target}",
   user_enabled:    "تفعيل حساب {target}",
   types_changed:   "تعديل أنواع الطلبات",
-  bulk_archive:    "أرشفة {target} طلب"
+  bulk_archive:    "أرشفة {target} طلب",
+  sla_changed:     "تعديل مدة المراحل"
 };
 /** يسجّل حدث في سجل النشاط العام (لـ GIS فقط) */
 export async function logActivity(p, action, { targetId = "", targetName = "", note = "", kind = "account" } = {}) {
@@ -168,6 +170,7 @@ const P = {
   crosshair: '<circle cx="12" cy="12" r="10"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/>',
   external: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 16V10M12 16V6M17 16v-4"/>',
   globe: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/>'
 };
 export function icon(name, cls = "") {
@@ -802,18 +805,64 @@ export function viewMap(el, loc) {
 }
 export const gmapsLink = loc => `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
 
+/* ---------------- مدة المراحل (SLA) ---------------- */
+// الحدث في السجل ← الحالة التي يبدأها
+const ACTION_STATUS = {
+  created: "new", resubmitted: "new", needs_info: "needs_info", accepted: "gis_work", reopened: "gis_work",
+  sent_maint: "maintenance", returned_maint: "maintenance", maint_done: "gis_review", approved: "approved", rejected: "rejected"
+};
+export const SLA_STAGE = { new: "gis", gis_work: "gis", gis_review: "gis", maintenance: "maint" };
+export const DEFAULT_SLA = { gis: 3, maint: 5 };
+
+/** متى دخل الطلب حالته الحالية */
+export function statusSince(r) {
+  const h = r.history || [];
+  for (let i = h.length - 1; i >= 0; i--) {
+    if (ACTION_STATUS[h[i].action] === r.status && h[i].at) return toDate(h[i].at);
+  }
+  return toDate(r.updatedAt) || toDate(r.createdAt);
+}
+/** {late, days, limit, stage} — late=true إذا تجاوز الطلب المدة المحددة لمرحلته */
+export function overdueInfo(r, sla) {
+  const stage = SLA_STAGE[r.status];
+  if (!stage || r.archived || !sla) return null;
+  const limit = +sla[stage] || 0;
+  if (!limit) return null;
+  const since = statusSince(r);
+  if (!since) return null;
+  const days = Math.floor((Date.now() - since.getTime()) / 86400000);
+  return { late: days > limit, days, limit, stage, over: days - limit };
+}
+/** إعدادات SLA الحالية مع تحديث لحظي */
+export function watchSla(cb) {
+  return F.onSnapshot(F.doc(db, "settings", "app"), s => {
+    const v = s.exists() ? s.data().sla : null;
+    cb({ ...DEFAULT_SLA, ...(v || {}) });
+  }, () => cb({ ...DEFAULT_SLA }));
+}
+
+/* ---------------- فرق الصيانة ---------------- */
+/** يرسل إشعاراً للفريق المكلّف بالطلب، أو لكل فرق الصيانة إن لم يُحدد فريق */
+export function notifyMaint(r, msg) {
+  const team = r.maintTeamId || "";
+  return notify(team ? { ...msg, toUid: team } : { ...msg, toRole: "maintenance" });
+}
+
 /* ---------------- بطاقة طلب في القائمة ---------------- */
-export function requestCard(r, { showCompany = true, forCompany = false } = {}) {
+export function requestCard(r, { showCompany = true, forCompany = false, sla = null, showTeam = false } = {}) {
+  const od = sla ? overdueInfo(r, sla) : null;
+  const late = od?.late;
   return `
-    <a class="req-card" href="request.html?id=${encodeURIComponent(r.id)}">
+    <a class="req-card ${late ? "is-late" : ""}" href="request.html?id=${encodeURIComponent(r.id)}">
       <div class="req-icon">${icon(r.location ? "pin" : "file")}</div>
       <div class="req-body">
-        <div class="req-top"><strong>${t("طلب #{n}", { n: r.number })}</strong><span class="chips">${r.archived ? `<span class="chip st-muted">${t("مؤرشف")}</span>` : ""}${chip(r.status, forCompany)}</span></div>
+        <div class="req-top"><strong>${t("طلب #{n}", { n: r.number })}</strong><span class="chips">${late ? `<span class="chip st-late">${icon("clock")} ${esc(t("متأخر {n} يوم", { n: od.over }))}</span>` : ""}${r.archived ? `<span class="chip st-muted">${t("مؤرشف")}</span>` : ""}${chip(r.status, forCompany)}</span></div>
         <div class="req-type">${esc(t(r.type || ""))}</div>
         <p class="req-desc">${esc(r.description)}</p>
         <div class="req-meta">
           ${showCompany ? `<span>${icon("building")} ${esc(r.companyName)}</span>` : ""}
           <span>${icon("clock")} ${esc(fmtDate(r.createdAt))}</span>
+          ${showTeam && r.maintTeamName ? `<span>${icon("wrench")} ${esc(r.maintTeamName)}</span>` : ""}
         </div>
       </div>
       <span class="req-go">${icon("chevron")}</span>

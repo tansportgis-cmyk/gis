@@ -3,7 +3,7 @@ import {
   db, storage, F, S, $, $$, esc, icon, toast, busy, errMsg, requireAuth, renderShell, hideBoot,
   chip, homeFor, fmtDate, fmtDateTime, HISTORY_LABELS, COMPANY_VISIBLE_HISTORY,
   filesHTML, wireFiles, hydrateThumbs, filePicker, uploadFiles, viewMap, gmapsLink,
-  modal, askNote, notify, hist, ROLES, t, fmtSize, APP
+  modal, askNote, notify, hist, ROLES, t, fmtSize, APP, overdueInfo, watchSla, notifyMaint
 } from "./core.js";
 
 const { profile } = await requireAuth(["company", "gis", "maintenance"]);
@@ -17,6 +17,40 @@ const ref = F.doc(db, "requests", id);
 let r = null;
 let lastActionKey = "";
 let mapInstance = null;
+let sla = null;
+watchSla(v => { sla = v; if (r) renderInfo(); });
+
+// فرق الصيانة المفعّلة (لـ GIS فقط)
+async function loadTeams() {
+  const snap = await F.getDocs(F.query(F.collection(db, "users"), F.where("role", "==", "maintenance")));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(u => u.status === "approved")
+    .sort((a, b) => (a.orgName || "").localeCompare(b.orgName || "", "ar"));
+}
+// نافذة اختيار الفريق + التعليمات
+async function teamModal({ title, confirmText, withNote, noteLabel, notePlaceholder, required = false, onSave }) {
+  let teams = [];
+  try { teams = await loadTeams(); } catch (e) { console.warn(e); }
+  const cur = r.maintTeamId || "";
+  return modal({
+    title, confirmText,
+    body: `
+      <label class="field"><span>${t("فريق الصيانة")}</span>
+        <select id="teamSel">
+          <option value="">${t("كل فرق الصيانة")}</option>
+          ${teams.map(u => `<option value="${esc(u.id)}" ${u.id === cur ? "selected" : ""}>${esc(u.orgName || u.name || u.email)}</option>`).join("")}
+        </select>
+        <small>${teams.length ? t("الفريق المختار فقط يشوف الطلب ويستلم إشعاره.") : t("لا توجد فرق صيانة مفعّلة بعد، سيصل الطلب لكل قسم الصيانة.")}</small>
+      </label>
+      ${withNote ? `<label class="field"><span>${esc(noteLabel)}${required ? ' <i class="req">*</i>' : ""}</span><textarea id="teamNote" rows="3" placeholder="${esc(notePlaceholder || "")}"></textarea></label>` : ""}`,
+    onConfirm: async bd => {
+      const id = $("#teamSel", bd).value;
+      const team = teams.find(u => u.id === id);
+      const note = withNote ? $("#teamNote", bd).value.trim() : "";
+      if (required && !note) { toast(t("الرجاء كتابة الملاحظة"), "error"); return false; }
+      await onSave({ maintTeamId: id, maintTeamName: team ? (team.orgName || team.name || team.email) : "" }, note);
+    }
+  });
+}
 
 if (new URLSearchParams(location.search).get("sent")) {
   $("#banner").innerHTML = `<div class="alert success">${icon("check")}<div><b>${t("تم إرسال الطلب بنجاح")}</b><p>${t("سيتم مراجعته من قسم GIS وستصلك الإشعارات عند أي تحديث.")}</p></div></div>`;
@@ -59,6 +93,8 @@ function stepperHTML() {
 
 function alertsHTML() {
   const out = [];
+  const od = !isCompany && sla ? overdueInfo(r, sla) : null;
+  if (od?.late) out.push(`<div class="alert danger">${icon("clock")}<div><b>${t("الطلب متأخر {n} يوم", { n: od.over })}</b><p>${esc(t(od.stage === "maint" ? "تجاوز مدة الصيانة المحددة ({d} يوم)." : "تجاوز مدة مرحلة GIS المحددة ({d} يوم).", { d: od.limit }))}</p></div></div>`);
   const note = r.companyNote ? `<p>${esc(r.companyNote)}</p>` : "";
   if (r.status === "needs_info") out.push(`<div class="alert warn">${icon("alert")}<div><b>${isCompany ? t("مطلوب منك استكمال الطلب") : t("بانتظار استكمال الشركة")}</b>${note}</div></div>`);
   if (r.status === "rejected") out.push(`<div class="alert danger">${icon("ban")}<div><b>${t("تم رفض الطلب")}</b>${note}</div></div>`);
@@ -88,6 +124,7 @@ function renderInfo() {
       <div><dt>${t("نوع الطلب")}</dt><dd>${esc(t(r.type || ""))}</dd></div>
       <div><dt>${t("وصف الطلب")}</dt><dd>${esc(r.description)}</dd></div>
       ${contact}
+      ${!isCompany && r.maintVisible ? `<div><dt>${t("فريق الصيانة")}</dt><dd>${esc(r.maintTeamName || t("كل فرق الصيانة"))}</dd></div>` : ""}
       <div><dt>${t("الموقع")}</dt><dd>${loc ? `<a href="${gmapsLink(loc)}" target="_blank" rel="noopener">${icon("external")} ${t("فتح في خرائط Google")}</a>` : t("لم يتم تحديد موقع")}</dd></div>
     </dl>
     ${loc ? `<div class="map" id="viewMap" style="margin-top:10px"></div>` : ""}`;
@@ -220,7 +257,7 @@ function renderActions() {
         btn("aSendMaint", "btn-primary", "send", t("إرسال لقسم الصيانة")) +
         `<div class="row">${btn("aNeeds", "btn-warn", "undo", t("طلب استكمال"))}${btn("aReject", "btn-outline-danger", "ban", t("رفض"))}</div>`);
     } else if (s === "maintenance") {
-      set("الطلب عند الصيانة", "سيصلك إشعار عندما تنهي الصيانة العمل وترجع الطلب.", "");
+      set("الطلب عند الصيانة", "سيصلك إشعار عندما تنهي الصيانة العمل وترجع الطلب.", btn("aTeam", "btn-ghost", "wrench", t("تغيير فريق الصيانة")));
     } else if (s === "gis_review") {
       set("مراجعة عمل الصيانة", "راجع صور وملفات الصيانة وملاحظاتهم، ثم اعتمد الطلب للشركة أو أرجعه.",
         btn("aApprove", "btn-success", "check", t("موافقة وإرسال للشركة")) +
@@ -254,18 +291,18 @@ function renderActions() {
       onConfirm: async note => {
         await update({ status: "rejected", companyNote: note }, hist(profile, "rejected", note));
         await notify({ toUid: r.companyId, title: "تم رفض الطلب #{n}", tp: { n: r.number }, body: note, link: link() });
-        if (r.maintVisible) await notify({ toRole: "maintenance", title: "تم رفض الطلب #{n}", tp: { n: r.number }, body: "أغلق قسم GIS الطلب", link: link() });
+        if (r.maintVisible) await notifyMaint(r, { title: "تم رفض الطلب #{n}", tp: { n: r.number }, body: "أغلق قسم GIS الطلب", link: link() });
         toast(t("تم رفض الطلب"), "success");
       }
     }));
     on("aSendMaint", () => {
       if (!r.gisFiles.length) { toast(t("ارفع ملفات GIS أولاً قبل الإرسال للصيانة"), "error"); $('[data-sec="gisFiles"]')?.scrollIntoView({ behavior: "smooth" }); return; }
-      askNote({
-        title: t("إرسال لقسم الصيانة"), label: t("تعليمات للصيانة (اختياري)"), required: false, confirmText: t("إرسال"),
-        placeholder: t("مثال: تنفيذ الرفع الميداني حسب الخريطة المرفقة"),
-        onConfirm: async note => {
-          await update({ status: "maintenance", maintVisible: true, maintInstructions: note }, hist(profile, "sent_maint", note));
-          await notify({ toRole: "maintenance", title: "طلب جديد #{n} من GIS", tp: { n: r.number }, body: "{type} — {org}", bp: { type: r.type, org: r.companyName }, link: link() });
+      teamModal({
+        title: t("إرسال لقسم الصيانة"), confirmText: t("إرسال"),
+        withNote: true, noteLabel: t("تعليمات للصيانة (اختياري)"), notePlaceholder: t("مثال: تنفيذ الرفع الميداني حسب الخريطة المرفقة"),
+        onSave: async (team, note) => {
+          await update({ status: "maintenance", maintVisible: true, maintInstructions: note, ...team }, hist(profile, "sent_maint", [team.maintTeamName, note].filter(Boolean).join(" — ")));
+          await notifyMaint({ ...r, ...team }, { title: "طلب جديد #{n} من GIS", tp: { n: r.number }, body: "{type} — {org}", bp: { type: r.type, org: r.companyName }, link: link() });
           toast(t("تم الإرسال لقسم الصيانة"), "success");
         }
       });
@@ -274,11 +311,21 @@ function renderActions() {
       title: t("إرجاع للصيانة"), label: t("ما المطلوب تعديله؟"), confirmText: t("إرجاع للصيانة"),
       onConfirm: async note => {
         await update({ status: "maintenance", maintInstructions: note }, hist(profile, "returned_maint", note));
-        await notify({ toRole: "maintenance", title: "GIS أرجع الطلب #{n} للتعديل", tp: { n: r.number }, body: note, link: link() });
+        await notifyMaint(r, { title: "GIS أرجع الطلب #{n} للتعديل", tp: { n: r.number }, body: note, link: link() });
         toast(t("تم إرجاع الطلب للصيانة"), "success");
       }
     }));
     on("aApprove", approveFlow);
+    on("aTeam", () => teamModal({
+      title: t("تغيير فريق الصيانة"), confirmText: t("حفظ"),
+      withNote: false,
+      onSave: async team => {
+        if (team.maintTeamId === (r.maintTeamId || "")) return;
+        await update(team, hist(profile, "team_changed", team.maintTeamName || t("كل فرق الصيانة")));
+        await notifyMaint({ ...r, ...team }, { title: "طلب جديد #{n} من GIS", tp: { n: r.number }, body: "{type} — {org}", bp: { type: r.type, org: r.companyName }, link: link() });
+        toast(t("تم تغيير الفريق"), "success");
+      }
+    }));
     on("aReopen", () => modal({
       title: t("إعادة فتح الطلب"), confirmText: t("إعادة الفتح"),
       body: `<p>${t("سيعود الطلب إلى «قيد العمل في GIS».")}</p>`,
@@ -426,7 +473,7 @@ function approveFlow() {
         sharedPaths: shared.map(f => f.path)
       }, hist(profile, "approved", note));
       await notify({ toUid: r.companyId, title: "تم اعتماد طلبك #{n}", tp: { n: r.number }, body: note || "الملفات النهائية متاحة للتنزيل", link: link() });
-      await notify({ toRole: "maintenance", title: "تم اعتماد الطلب #{n}", tp: { n: r.number }, body: "اعتمد GIS العمل وأغلق الطلب", link: link() });
+      await notifyMaint(r, { title: "تم اعتماد الطلب #{n}", tp: { n: r.number }, body: "اعتمد GIS العمل وأغلق الطلب", link: link() });
       toast(t("تم اعتماد الطلب وإرساله للشركة"), "success");
     }
   });

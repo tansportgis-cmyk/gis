@@ -29,9 +29,12 @@ service cloud.firestore {
 
     // ---------- الطلبات ----------
     match /requests/{rid} {
+      // الطلب لكل فرق الصيانة (بدون فريق) أو لفريق هذا المستخدم
+      function myTeam(d) { return d.maintTeamId == '' || d.maintTeamId == request.auth.uid; }
+
       allow read: if isGis()
         || (isRole('company') && resource.data.companyId == request.auth.uid)
-        || (isRole('maintenance') && resource.data.maintVisible == true);
+        || (isRole('maintenance') && resource.data.maintVisible == true && myTeam(resource.data));
 
       allow create: if isRole('company')
         && request.resource.data.companyId == request.auth.uid
@@ -48,6 +51,7 @@ service cloud.firestore {
         // الصيانة: تعمل فقط على الطلبات المحوّلة لها وهي عند الصيانة
         || (isRole('maintenance')
             && resource.data.maintVisible == true
+            && myTeam(resource.data)
             && resource.data.status == 'maintenance'
             && request.resource.data.status in ['maintenance', 'gis_review']
             && onlyChanged(['maintFiles', 'maintNotes', 'status', 'history', 'updatedAt']));

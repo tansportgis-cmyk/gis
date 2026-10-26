@@ -3,17 +3,21 @@ import {
   db, F, $, $$, esc, icon, toast, errMsg, requireAuth, renderShell, hideBoot,
   requestCard, emptyState, byDateDesc, STATUS, ROLES, ROLE_KEYS, fmtDate, modal, askNote, notify,
   DEFAULT_TYPES, t, markCurrentPageRead, avatarPicker, avatarChanges,
-  toDate, fmtDateTime, HISTORY_LABELS, ACTIVITY_LABELS, logActivity, timeAgo, chip, APP, gmapsLink
+  toDate, fmtDateTime, HISTORY_LABELS, ACTIVITY_LABELS, logActivity, timeAgo, chip, APP, gmapsLink,
+  watchSla, overdueInfo, DEFAULT_SLA, busy
 } from "./core.js";
+import { initReports } from "./reports.js";
 
 const { profile } = await requireAuth(["gis"]);
 renderShell(profile, { title: t("لوحة GIS"), subtitle: profile.orgName });
 $("#searchIc").outerHTML = icon("search");
 
 /* ---------- التنقل ---------- */
-const TABS = { requests: [t("الطلبات"), "inbox"], map: [t("الخريطة"), "pin"], accounts: [t("الحسابات"), "users"], activity: [t("السجل"), "clock"], settings: [t("الإعدادات"), "settings"] };
+const TABS = { requests: [t("الطلبات"), "inbox"], map: [t("الخريطة"), "pin"], accounts: [t("الحسابات"), "users"], activity: [t("السجل"), "clock"], reports: [t("التقارير"), "chart"], settings: [t("الإعدادات"), "settings"] };
 let tab = (location.hash.slice(1) in TABS) ? location.hash.slice(1) : "requests";
 let requests = [], users = [], activity = [];
+let sla = { ...DEFAULT_SLA };
+const reports = initReports({ getRequests: () => requests, getSla: () => sla });
 
 function renderNav() {
   const pendingUsers = users.filter(u => u.status === "pending").length;
@@ -27,6 +31,7 @@ function showTab() {
   Object.keys(TABS).forEach(k => ($("#tab-" + k).hidden = k !== tab));
   renderNav();
   if (tab === "map") showMap();
+  if (tab === "reports") reports.show();
 }
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h in TABS) { tab = h; showTab(); } });
 
@@ -34,6 +39,7 @@ window.addEventListener("hashchange", () => { const h = location.hash.slice(1); 
 // الطلبات المؤرشفة لا تظهر إلا في تصنيف «الأرشيف»
 const FILTERS = {
   action:      { label: t("بحاجة لإجرائك"), match: r => !r.archived && ["new", "gis_review"].includes(r.status) },
+  late:        { label: t("متأخرة"), match: r => !!overdueInfo(r, sla)?.late },
   all:         { label: t("الكل"), match: r => !r.archived },
   ...Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, { label: v.label, match: r => !r.archived && r.status === k }])),
   archived:    { label: t("الأرشيف"), match: r => !!r.archived }
@@ -48,13 +54,13 @@ function renderRequests() {
     <button class="stat purple" data-f="maintenance"><b>${c("maintenance")}</b><span>${t("عند الصيانة")}</span></button>
     <button class="stat green" data-f="approved"><b>${c("approved")}</b><span>${t("مكتملة")}</span></button>`;
   $("#filters").innerHTML = Object.entries(FILTERS).map(([k, f]) =>
-    `<button class="tab ${k === filter ? "active" : ""}" data-f="${k}">${f.label} <span class="n">${c(k)}</span></button>`).join("");
+    `<button class="tab ${k === filter ? "active" : ""} ${k === "late" && c(k) ? "tab-late" : ""}" data-f="${k}">${f.label} <span class="n">${c(k)}</span></button>`).join("");
   const q = query.trim().toLowerCase().replace(/^#/, "");
   const list = requests.filter(FILTERS[filter].match).filter(r => !q ||
     String(r.number).includes(q) || (r.companyName || "").toLowerCase().includes(q) ||
     (r.description || "").toLowerCase().includes(q) || (r.type || "").toLowerCase().includes(q) ||
     t(r.type || "").toLowerCase().includes(q));
-  $("#list").innerHTML = list.length ? list.map(r => requestCard(r)).join("")
+  $("#list").innerHTML = list.length ? list.map(r => requestCard(r, { sla, showTeam: true })).join("")
     : emptyState(filter === "action" && !q ? t("لا توجد طلبات بحاجة لإجرائك") : t("لا توجد طلبات"));
   $$("#stats [data-f], #filters [data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderRequests(); });
   renderNav();
@@ -67,6 +73,8 @@ F.onSnapshot(F.query(F.collection(db, "requests"), F.orderBy("createdAt", "desc"
   renderActivity();
   archHint();
   renderMap();
+  reports.refresh();
+  backfillTeams();
   hideBoot();
 }, e => { toast(errMsg(e), "error"); hideBoot(); });
 
@@ -440,5 +448,45 @@ function renderMap() {
   });
 }
 $("#mapPeriod").addEventListener("change", e => { mperiod = +e.target.value; renderMap(); fitMap(); });
+
+/* ---------- مدة المراحل (SLA) ---------- */
+watchSla(v => {
+  sla = v;
+  const f = $("#slaForm");
+  if (document.activeElement?.form !== f) { f.gis.value = v.gis; f.maint.value = v.maint; }
+  renderRequests();
+  reports.refresh();
+});
+$("#slaForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, btn = f.querySelector("button");
+  const v = { gis: Math.max(0, Math.round(+f.gis.value || 0)), maint: Math.max(0, Math.round(+f.maint.value || 0)) };
+  busy(btn, true);
+  try {
+    await F.setDoc(F.doc(db, "settings", "app"), { sla: v }, { merge: true });
+    await logActivity(profile, "sla_changed", { kind: "settings", note: `GIS: ${v.gis} · ${t("الصيانة")}: ${v.maint}` });
+    toast(t("تم الحفظ"), "success");
+  } catch (err) { toast(errMsg(err), "error"); }
+  finally { busy(btn, false); }
+});
+
+/* ---------- تجهيز الطلبات القديمة لفرق الصيانة ----------
+   الطلبات المنشأة قبل ميزة الفرق ليس فيها maintTeamId،
+   فنضيفه فارغاً (= لكل فرق الصيانة) حتى تظهر للصيانة كما كانت. */
+let backfilling = false;
+async function backfillTeams() {
+  if (backfilling) return;
+  const todo = requests.filter(r => r.maintTeamId === undefined);
+  if (!todo.length) return;
+  backfilling = true;
+  try {
+    for (let i = 0; i < todo.length; i += 400) {
+      const batch = F.writeBatch(db);
+      todo.slice(i, i + 400).forEach(r => batch.update(F.doc(db, "requests", r.id), { maintTeamId: "", maintTeamName: "" }));
+      await batch.commit();
+    }
+  } catch (e) { console.warn("backfill teams", e); }
+  finally { backfilling = false; }
+}
 
 showTab();

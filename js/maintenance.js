@@ -1,5 +1,5 @@
 // واجهة قسم الصيانة
-import { db, F, $, $$, toast, errMsg, requireAuth, renderShell, hideBoot, requestCard, emptyState, byDateDesc, t } from "./core.js";
+import { db, F, $, $$, toast, errMsg, requireAuth, renderShell, hideBoot, requestCard, emptyState, byDateDesc, t, watchSla, overdueInfo } from "./core.js";
 
 const { profile } = await requireAuth(["maintenance"]);
 renderShell(profile, { title: t("قسم الصيانة"), subtitle: profile.orgName });
@@ -14,6 +14,7 @@ const GROUPS = {
 };
 let filter = "current";
 let requests = [];
+let sla = null;
 
 function render() {
   const c = k => requests.filter(GROUPS[k].match).length;
@@ -25,17 +26,23 @@ function render() {
   $("#tabs").innerHTML = Object.entries(GROUPS).map(([k, g]) =>
     `<button class="tab ${k === filter ? "active" : ""}" data-f="${k}">${g.label} <span class="n">${c(k)}</span></button>`).join("");
   const list = requests.filter(GROUPS[filter].match);
-  $("#list").innerHTML = list.length ? list.map(r => requestCard(r)).join("")
+  $("#list").innerHTML = list.length ? list.map(r => requestCard(r, { sla })).join("")
     : emptyState(filter === "current" ? t("لا توجد طلبات بانتظار التنفيذ") : t("لا توجد طلبات"));
   $$("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
 }
 
-F.onSnapshot(
-  F.query(F.collection(db, "requests"), F.where("maintVisible", "==", true)),
-  snap => {
-    requests = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(byDateDesc);
-    render();
-    hideBoot();
-  },
-  e => { toast(errMsg(e), "error"); hideBoot(); }
-);
+// الطلبات المحوّلة لهذا الفريق + الطلبات المحوّلة لكل فرق الصيانة
+let mine = [], shared = [], loaded = 0;
+const merge = () => {
+  const map = new Map([...shared, ...mine].map(r => [r.id, r]));
+  requests = [...map.values()].sort(byDateDesc);
+  render();
+  if (++loaded >= 2) hideBoot();
+};
+const col = F.collection(db, "requests");
+const onErr = e => { toast(errMsg(e), "error"); hideBoot(); };
+F.onSnapshot(F.query(col, F.where("maintVisible", "==", true), F.where("maintTeamId", "==", profile.id)),
+  snap => { mine = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); }, onErr);
+F.onSnapshot(F.query(col, F.where("maintVisible", "==", true), F.where("maintTeamId", "==", "")),
+  snap => { shared = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); }, onErr);
+watchSla(v => { sla = v; render(); });

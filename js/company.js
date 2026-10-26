@@ -116,6 +116,7 @@ $("#newForm").addEventListener("submit", async e => {
         contactEmail: profile.email || "",
         status: "new",
         maintVisible: false,
+        maintTeamId: "", maintTeamName: "",
         companyFiles: [], gisFiles: [], maintFiles: [], finalFiles: [], sharedPaths: [],
         companyNote: "", maintInstructions: "", maintNotes: "",
         history: [hist(profile, "created")],

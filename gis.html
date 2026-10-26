@@ -70,6 +70,9 @@
       <div class="act-more"><button class="btn btn-ghost" id="actMore" hidden data-i18n="عرض المزيد">عرض المزيد</button></div>
     </section>
 
+    <!-- التقارير -->
+    <section id="tab-reports" hidden></section>
+
     <!-- الإعدادات -->
     <section id="tab-settings" hidden>
       <div class="card card-pad section">
@@ -79,6 +82,15 @@
         <form class="add-row" id="addType">
           <input class="input" name="t" data-i18n-ph="نوع جديد، مثال: أعمال مساحة" placeholder="نوع جديد، مثال: أعمال مساحة" required>
           <button class="btn btn-primary" type="submit" data-i18n="إضافة">إضافة</button>
+        </form>
+      </div>
+      <div class="card card-pad section">
+        <div class="section-head"><h3 data-i18n="مدة المراحل (تنبيه التأخير)">مدة المراحل (تنبيه التأخير)</h3></div>
+        <p class="muted" style="font-size:14px;margin-bottom:12px" data-i18n="إذا بقي الطلب في مرحلة أكثر من عدد الأيام المحدد يظهر باللون الأحمر مع عدد أيام التأخير. اكتب 0 لإيقاف التنبيه.">إذا بقي الطلب في مرحلة أكثر من عدد الأيام المحدد يظهر باللون الأحمر مع عدد أيام التأخير. اكتب 0 لإيقاف التنبيه.</p>
+        <form class="sla-form" id="slaForm">
+          <label class="field"><span data-i18n="مرحلة GIS (مراجعة، عمل، اعتماد)">مرحلة GIS (مراجعة، عمل، اعتماد)</span><div class="sla-input"><input class="input" type="number" min="0" max="365" name="gis" required><span data-i18n="يوم">يوم</span></div></label>
+          <label class="field"><span data-i18n="مرحلة الصيانة">مرحلة الصيانة</span><div class="sla-input"><input class="input" type="number" min="0" max="365" name="maint" required><span data-i18n="يوم">يوم</span></div></label>
+          <button class="btn btn-primary" type="submit" data-i18n="حفظ">حفظ</button>
         </form>
       </div>
       <div class="card card-pad section">

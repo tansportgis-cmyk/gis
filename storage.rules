@@ -12,6 +12,7 @@ service firebase.storage {
     function approved() { return request.auth != null && me().status == 'approved'; }
     function isRole(r) { return approved() && me().role == r; }
     function req(rid) { return firestore.get(/databases/(default)/documents/requests/$(rid)).data; }
+    function myTeam(rid) { return req(rid).get('maintTeamId', '') in ['', request.auth.uid]; }
     function smallEnough() { return request.resource.size < 50 * 1024 * 1024; }
 
     // المسار: requests/{رقم الطلب}/{القسم}/{الملف}
@@ -22,7 +23,7 @@ service firebase.storage {
         || (isRole('company') && req(rid).companyId == request.auth.uid
             && (section in ['company', 'final']
                 || ('requests/' + rid + '/' + section + '/' + file) in req(rid).sharedPaths))
-        || (isRole('maintenance') && req(rid).maintVisible == true && section in ['gis', 'maint']);
+        || (isRole('maintenance') && req(rid).maintVisible == true && myTeam(rid) && section in ['gis', 'maint']);
 
       allow create: if smallEnough() && (
            (section == 'company' && isRole('company')
@@ -30,11 +31,11 @@ service firebase.storage {
               && req(rid).status in ['new', 'needs_info'])
         || (section in ['gis', 'final'] && isRole('gis'))
         || (section == 'maint' && isRole('maintenance')
-              && req(rid).maintVisible == true && req(rid).status == 'maintenance'));
+              && req(rid).maintVisible == true && myTeam(rid) && req(rid).status == 'maintenance'));
 
       allow delete: if isRole('gis')
         || (section == 'maint' && isRole('maintenance')
-              && req(rid).maintVisible == true && req(rid).status == 'maintenance');
+              && req(rid).maintVisible == true && myTeam(rid) && req(rid).status == 'maintenance');
     }
 
     // الصورة الشخصية: avatars/{رقم المستخدم}/{الملف}
