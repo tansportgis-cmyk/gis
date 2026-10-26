@@ -4,12 +4,12 @@
 //  هذه القيم ليست سرية، والحماية الحقيقية تكون في ملفي firestore.rules و storage.rules
 // ==========================================================
 export const firebaseConfig = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  storageBucket: "PASTE_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID"
+  apiKey: "AIzaSyB2ntPueOOOvJxrk8-B8ucMIbcUFN7DgL8",
+  authDomain: "gisoman-c0c3c.firebaseapp.com",
+  projectId: "gisoman-c0c3c",
+  storageBucket: "gisoman-c0c3c.firebasestorage.app",
+  messagingSenderId: "379981386580",
+  appId: "1:379981386580:web:f91ba6d1fc958a62e26ec1"
 };
 
 // إعدادات عامة للتطبيق
