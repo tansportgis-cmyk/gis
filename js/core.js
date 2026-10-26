@@ -447,7 +447,7 @@ export function renderShell(profile, { title, subtitle = "", back = "" } = {}) {
   $("#topbar").innerHTML = `
     <div class="topbar-inner">
       <div class="tb-start">
-        ${back ? `<a class="icon-btn back-btn" href="${esc(back)}" aria-label="${t("رجوع")}">${icon("back")}</a>` : `<div class="brand-mark">${icon("layers")}</div>`}
+        ${back ? `<a class="icon-btn back-btn" href="${esc(back)}" aria-label="${t("رجوع")}">${icon("back")}</a>` : `<img class="brand-mark" src="icons/logo-96.png" alt="GIS" width="40" height="40">`}
         <div class="tb-title"><strong>${esc(title)}</strong>${subtitle ? `<small>${esc(subtitle)}</small>` : ""}</div>
       </div>
       <div class="tb-end">
@@ -504,7 +504,7 @@ const nBody = n => t(n.body || "", n.bp || undefined);
 
 function showDeviceNotification(n) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const opts = { body: nBody(n), icon: "icons/icon-192.png", tag: n.id, data: { link: n.link } };
+  const opts = { body: nBody(n), icon: "icons/icon-192.png", badge: "icons/favicon-48.png", tag: n.id, data: { link: n.link } };
   if (navigator.serviceWorker?.controller) {
     navigator.serviceWorker.ready.then(r => r.showNotification(nTitle(n), opts)).catch(() => {});
   } else {

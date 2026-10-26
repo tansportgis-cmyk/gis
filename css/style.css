@@ -661,3 +661,30 @@ p { margin: 0; }
   .side-layout .big-map { height: calc(100vh - 330px); }
 }
 @media (max-width: 360px) { .side-layout .navtab .ic { padding: 4px 8px; } .side-layout .navtab { font-size: 10px; } }
+
+/* ---------- الشعار ---------- */
+img.brand-mark { width: 40px; height: 40px; border-radius: 11px; background: none; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 6px rgba(13, 59, 120, .18); }
+.auth-logo { width: 104px; height: 104px; background: none; box-shadow: none; padding: 0; border-radius: 26px; }
+.auth-logo img { width: 100%; height: 100%; border-radius: 24px; display: block; box-shadow: 0 14px 30px rgba(13, 59, 120, .22); }
+@media (min-width: 960px) { .auth-logo { width: 120px; height: 120px; } }
+
+/* ---------- تظليل التبويب المختار ---------- */
+.side-layout .navtab { transition: background .18s, color .18s, transform .08s, box-shadow .18s; }
+.side-layout .navtab:active { transform: scale(.96); }
+@media (min-width: 960px) {
+  .side-layout .navtab:hover:not(.active) { background: var(--primary-50); color: var(--primary); }
+  .side-layout .navtab.active {
+    background: linear-gradient(135deg, #123f86 0%, #1d6fe0 70%, #1f9d8f 135%);
+    color: #fff; box-shadow: 0 6px 16px rgba(29, 111, 224, .32);
+  }
+  .side-layout .navtab.active .n { background: #fff; color: var(--primary); }
+}
+@media (max-width: 959px) {
+  .side-layout .navtab.active { color: var(--primary); font-weight: 700; }
+  .side-layout .navtab.active .ic {
+    background: linear-gradient(135deg, #123f86 0%, #1d6fe0 70%, #1f9d8f 135%);
+    color: #fff; box-shadow: 0 4px 12px rgba(29, 111, 224, .35);
+  }
+  .side-layout .navtab:active .ic { background: var(--primary-50); }
+  .side-layout .navtab.active:active .ic { background: linear-gradient(135deg, #123f86 0%, #1d6fe0 70%, #1f9d8f 135%); }
+}
