@@ -24,8 +24,12 @@ function renderNav() {
   const actionReqs = requests.filter(r => !r.archived && ["new", "gis_review"].includes(r.status)).length;
   const badge = { requests: actionReqs, accounts: pendingUsers };
   $("#nav").innerHTML = Object.entries(TABS).map(([k, [label, ic]]) =>
-    `<button class="navtab ${k === tab ? "active" : ""}" data-tab="${k}">${icon(ic)} ${label}${badge[k] ? ` <span class="n">${badge[k]}</span>` : ""}</button>`).join("");
-  $$("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; history.replaceState(null, "", "#" + tab); showTab(); markCurrentPageRead(); });
+    `<button class="navtab ${k === tab ? "active" : ""}" data-tab="${k}" aria-label="${esc(label)}"${k === tab ? ' aria-current="page"' : ""}>${icon(ic)}<span class="nt-label">${label}</span>${badge[k] ? `<span class="n">${badge[k]}</span>` : ""}</button>`).join("");
+  $$("[data-tab]").forEach(b => b.onclick = () => {
+    const changed = tab !== b.dataset.tab;
+    tab = b.dataset.tab; history.replaceState(null, "", "#" + tab); showTab(); markCurrentPageRead();
+    if (changed) window.scrollTo({ top: 0 });
+  });
 }
 function showTab() {
   Object.keys(TABS).forEach(k => ($("#tab-" + k).hidden = k !== tab));

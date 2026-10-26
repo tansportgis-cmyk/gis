@@ -623,3 +623,41 @@ p { margin: 0; }
 .rep-table td { padding: 10px; border-bottom: 1px solid var(--border); }
 .rep-table tr:last-child td { border-bottom: 0; }
 .rep-table .empty { border: 0; padding: 24px; }
+
+/* ---------- تنقّل لوحة GIS: جانبي على الكمبيوتر، شريط سفلي على الجوال ---------- */
+.side-layout .navtab { gap: 8px; }
+.side-layout .navtab .n { line-height: 18px; }
+@media (min-width: 960px) {
+  .side-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); column-gap: 24px; align-items: start; }
+  .side-layout > section { grid-column: 2; grid-row: 1; min-width: 0; }
+  .side-layout > .navtabs {
+    grid-column: 1; grid-row: 1; position: sticky; top: 80px;
+    flex-direction: column; align-items: stretch; gap: 4px; padding: 8px; margin: 0; overflow: visible;
+  }
+  .side-layout .navtab { flex: 0 0 auto; justify-content: flex-start; padding: 12px 14px; font-size: 15px; width: 100%; }
+  .side-layout .navtab .ic { display: inline-block !important; width: 20px; height: 20px; }
+  .side-layout .navtab .n { margin-inline-start: auto; }
+}
+@media (max-width: 959px) {
+  .side-layout > .navtabs {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 35;
+    margin: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, .97); backdrop-filter: saturate(1.4) blur(10px);
+    box-shadow: 0 -4px 18px rgba(16, 24, 40, .08); overflow: visible; gap: 0;
+  }
+  .side-layout .navtab {
+    flex: 1 1 0; min-width: 0; flex-direction: column; gap: 3px;
+    padding: 4px 2px; font-size: 11px; font-weight: 600; color: var(--muted);
+    border-radius: 12px; position: relative; background: none;
+  }
+  .side-layout .navtab .ic { display: block !important; width: 22px; height: 22px; padding: 4px 14px; box-sizing: content-box; border-radius: 999px; transition: background .15s; }
+  .side-layout .navtab.active { background: none; color: var(--primary); }
+  .side-layout .navtab.active .ic { background: var(--primary-50); }
+  .side-layout .nt-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-layout .navtab .n { position: absolute; top: 0; inset-inline-start: calc(50% + 6px); min-width: 17px; padding: 0 5px; font-size: 10px; line-height: 17px; border: 2px solid #fff; }
+  body:has(.side-layout) .container { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  body:has(.side-layout) #toasts { bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .side-layout .big-map { height: calc(100vh - 330px); }
+}
+@media (max-width: 360px) { .side-layout .navtab .ic { padding: 4px 8px; } .side-layout .navtab { font-size: 10px; } }
